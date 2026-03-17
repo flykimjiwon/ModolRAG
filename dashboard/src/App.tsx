@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { I18nProvider } from './i18n'
+import { ThemeProvider } from './theme'
 import Layout from './components/Layout'
 import Documents from './pages/Documents'
 import Collections from './pages/Collections'
@@ -8,17 +10,21 @@ import Settings from './pages/Settings'
 
 export default function App() {
   return (
-    <BrowserRouter basename="/dashboard">
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Navigate to="/documents" replace />} />
-          <Route path="documents" element={<Documents />} />
-          <Route path="collections" element={<Collections />} />
-          <Route path="search" element={<Search />} />
-          <Route path="graph" element={<Graph />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider>
+      <I18nProvider>
+        <BrowserRouter basename="/dashboard">
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<Navigate to="/documents" replace />} />
+              <Route path="documents" element={<Documents />} />
+              <Route path="collections" element={<Collections />} />
+              <Route path="search" element={<Search />} />
+              <Route path="graph" element={<Graph />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </I18nProvider>
+    </ThemeProvider>
   )
 }

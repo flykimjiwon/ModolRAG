@@ -1,68 +1,32 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n'
 
 export default function Settings() {
-  const [settings, setSettings] = useState<Record<string, any>>({})
-  const [apiKey, setApiKey] = useState(localStorage.getItem('modolrag-api-key') || '')
-  const [saved, setSaved] = useState(false)
+  const { t } = useI18n()
+  const [s, setS] = useState<Record<string, any>>({}); const [key, setKey] = useState(localStorage.getItem('modolrag-api-key') || ''); const [ok, setOk] = useState(false)
+  useEffect(() => { api.getSettings().then(setS).catch(() => {}) }, [])
+  const save = async () => { await api.updateSettings({ chunk_size: s.chunk_size, chunk_overlap: s.chunk_overlap, embedding_model: s.embedding_model, similarity_top_k: s.similarity_top_k, similarity_threshold: s.similarity_threshold }); localStorage.setItem('modolrag-api-key', key); setOk(true); setTimeout(() => setOk(false), 2000) }
+  const up = (k: string, v: any) => setS(p => ({ ...p, [k]: v }))
+  const ic = "w-full px-3 py-2.5 border border-slate-300 dark:border-zinc-600 rounded-lg text-sm bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
 
-  useEffect(() => { api.getSettings().then(setSettings).catch(() => {}) }, [])
-
-  const onSave = async () => {
-    await api.updateSettings({
-      chunk_size: settings.chunk_size,
-      chunk_overlap: settings.chunk_overlap,
-      embedding_model: settings.embedding_model,
-      similarity_top_k: settings.similarity_top_k,
-      similarity_threshold: settings.similarity_threshold,
-    })
-    localStorage.setItem('modolrag-api-key', apiKey)
-    setSaved(true); setTimeout(() => setSaved(false), 2000)
-  }
-
-  const update = (key: string, val: any) => setSettings(s => ({ ...s, [key]: val }))
-
-  return (
-    <div className="max-w-lg">
-      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Settings</h2>
-      <div className="space-y-4">
-        <Field label="API Key" hint="Stored in browser localStorage">
-          <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Your API key" />
-        </Field>
-        <Field label="Chunk Size" hint="128-4096">
-          <input type="number" value={settings.chunk_size || 512} onChange={e => update('chunk_size', +e.target.value)}
-            className="w-full px-3 py-2 border rounded-md text-sm" min={128} max={4096} />
-        </Field>
-        <Field label="Chunk Overlap" hint="0-512">
-          <input type="number" value={settings.chunk_overlap || 51} onChange={e => update('chunk_overlap', +e.target.value)}
-            className="w-full px-3 py-2 border rounded-md text-sm" min={0} max={512} />
-        </Field>
-        <Field label="Embedding Model">
-          <input value={settings.embedding_model || 'nomic-embed-text'} onChange={e => update('embedding_model', e.target.value)}
-            className="w-full px-3 py-2 border rounded-md text-sm" />
-        </Field>
-        <Field label={`Similarity Top-K: ${settings.similarity_top_k || 5}`}>
-          <input type="range" min={1} max={50} value={settings.similarity_top_k || 5} onChange={e => update('similarity_top_k', +e.target.value)} className="w-full" />
-        </Field>
-        <Field label={`Similarity Threshold: ${settings.similarity_threshold || 0.7}`}>
-          <input type="range" min={0} max={1} step={0.05} value={settings.similarity_threshold || 0.7} onChange={e => update('similarity_threshold', +e.target.value)} className="w-full" />
-        </Field>
-        <button onClick={onSave} className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-700">
-          Save Settings
-        </button>
-        {saved && <span className="text-sm text-green-600 ml-3">Saved!</span>}
+  return (<div className="max-w-lg">
+    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-8">{t('settings.title')}</h2>
+    <div className="space-y-5">
+      <F l={t('settings.api_key')} h={t('settings.api_hint')}><input type="password" value={key} onChange={e => setKey(e.target.value)} className={ic} /></F>
+      <F l={t('settings.chunk_size')}><input type="number" value={s.chunk_size || 512} onChange={e => up('chunk_size', +e.target.value)} className={ic} min={128} max={4096} /></F>
+      <F l={t('settings.chunk_overlap')}><input type="number" value={s.chunk_overlap || 51} onChange={e => up('chunk_overlap', +e.target.value)} className={ic} min={0} max={512} /></F>
+      <F l={t('settings.model')}><input value={s.embedding_model || 'nomic-embed-text'} onChange={e => up('embedding_model', e.target.value)} className={ic} /></F>
+      <F l={`${t('settings.top_k')}: ${s.similarity_top_k || 5}`}><input type="range" min={1} max={50} value={s.similarity_top_k || 5} onChange={e => up('similarity_top_k', +e.target.value)} className="w-full accent-indigo-500" /></F>
+      <F l={`${t('settings.threshold')}: ${s.similarity_threshold || 0.7}`}><input type="range" min={0} max={1} step={0.05} value={s.similarity_threshold || 0.7} onChange={e => up('similarity_threshold', +e.target.value)} className="w-full accent-indigo-500" /></F>
+      <div className="flex items-center gap-3 pt-2">
+        <button onClick={save} className="px-5 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-lg text-sm hover:bg-slate-700 dark:hover:bg-indigo-500 font-medium transition-colors">{t('settings.save')}</button>
+        {ok && <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{t('settings.saved')}</span>}
       </div>
     </div>
-  )
+  </div>)
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
-      {children}
-    </div>
-  )
+function F({ l, h, children }: { l: string; h?: string; children: React.ReactNode }) {
+  return <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{l}</label>{h && <p className="text-[11px] text-slate-400 dark:text-zinc-500 mb-1.5">{h}</p>}{children}</div>
 }
