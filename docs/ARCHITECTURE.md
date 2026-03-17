@@ -162,13 +162,82 @@ Default: RecursiveChunker with chunk_size=512, overlap=51.
 
 ## API Design
 
-RESTful JSON API with X-API-Key authentication:
+RESTful JSON API with X-API-Key authentication. Four tag categories:
 
-- `POST /api/ingest` — Multipart file upload, returns document_id
-- `GET/DELETE /api/documents[/{id}]` — CRUD operations
-- `POST /api/search` — `{query, top_k, mode, namespace}`
-- `GET /api/graph` — Full graph data for visualization
-- `GET/PUT /api/settings` — Runtime configuration
-- `GET /health` — Health check (no auth)
+| Tag | Endpoints | Purpose |
+|---|---|---|
+| **documents** | `POST /api/ingest`, `GET/DELETE /api/documents[/{id}]` | Document lifecycle management |
+| **search** | `POST /api/search` | Hybrid search with mode selection |
+| **graph** | `GET /api/graph`, `GET /api/graph/node/{id}` | Knowledge graph data |
+| **admin** | `GET /health`, `GET/PUT /api/settings` | System configuration |
 
-OpenAPI docs auto-generated at `/docs`.
+### OpenAPI / Swagger Auto-Documentation
+
+FastAPI generates OpenAPI 3.1 schema automatically from code:
+
+- **Pydantic models** → request/response schemas with field descriptions, validation, examples
+- **Docstrings** → endpoint descriptions in Swagger UI
+- **Tags** → grouped navigation with category descriptions
+- **Auth** → `X-API-Key` header documented as security scheme
+
+Available at:
+- `/docs` — Swagger UI (interactive testing)
+- `/redoc` — ReDoc (reading-friendly)
+- `/openapi.json` — Machine-readable schema
+
+### Dashboard Integration
+
+The React SPA dashboard is served from FastAPI as static files:
+
+```python
+# modolrag/main.py
+static_dir = Path(__file__).parent / "static"
+app.mount("/dashboard", StaticFiles(directory=str(static_dir), html=True))
+```
+
+Dashboard sidebar includes direct links to `/docs` (Swagger) and `/redoc` for API exploration.
+
+---
+
+## Docker Architecture
+
+Multi-stage build with three services:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  docker-compose.yml                                 │
+│                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
+│  │ postgres  │  │ ollama   │  │ modolrag         │  │
+│  │ pgvector  │  │ nomic-   │  │ FastAPI + SPA    │  │
+│  │ :pg15     │  │ embed    │  │ :8000            │  │
+│  │ :5432     │  │ :11434   │  │                  │  │
+│  └─────┬─────┘  └─────┬────┘  └────┬─────────────┘  │
+│        │              │            │                │
+│        └──────────────┴────────────┘                │
+│              Docker internal network                │
+└─────────────────────────────────────────────────────┘
+```
+
+### Dockerfile (multi-stage)
+
+```
+Stage 1: node:20-slim
+  → npm ci → npm run build
+  → Output: modolrag/static/ (dashboard)
+
+Stage 2: python:3.11-slim
+  → pip install modolrag
+  → COPY --from=stage1 modolrag/static/
+  → uvicorn modolrag.main:app
+```
+
+### Service Dependencies
+
+```
+postgres ←(healthcheck)── modolrag
+ollama   ←(healthcheck)── modolrag
+```
+
+ModolRAG waits for both PostgreSQL and Ollama to be healthy before starting.
+On startup, it auto-initializes the database schema (`init_schema()`).

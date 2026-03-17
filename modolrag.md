@@ -1407,6 +1407,132 @@ curl http://localhost:8000/health  # Expected: 200, {"status": "ok"}
 
 > 모든 작업 과정을 누적 기록. 최신 항목이 위에 위치.
 
+### 2026-03-17 — Swagger/Docker 보강 (v0.4)
+
+**배경**: API 문서 자동화(Swagger), Docker 인프라, 대시보드 연동 보강 필요.
+
+**변경 사항**:
+
+1. **Dockerfile 멀티스테이지 빌드**
+   - Stage 1: Node.js 20 → dashboard `npm run build` → modolrag/static/ 출력
+   - Stage 2: Python 3.11-slim → pip install → 대시보드 static 복사
+   - 헬스체크: httpx → curl 변경 (더 가벼움)
+   - `.dockerignore` 업데이트 (node_modules, tests, .git 제외)
+
+2. **docker-compose.yml 강화**
+   - Ollama 서비스 추가 (ollama/ollama:latest, 볼륨, 헬스체크, GPU 옵션 주석)
+   - 환경변수 기본값 패턴: `${POSTGRES_PASSWORD:-modolrag}`, `${MODOLRAG_PORT:-8000}`
+   - 3개 서비스: postgres (pgvector:pg15) + ollama + modolrag
+   - 사용법 주석 추가 (Ollama 없이 실행, 모델 다운로드 등)
+
+3. **OpenAPI/Swagger 보강**
+   - FastAPI 메타데이터: summary, rich description (features, auth, dashboard 링크), license_info
+   - 4개 태그 카테고리 + 상세 설명: documents, search, graph, admin
+   - Pydantic response 모델: IngestResponse, DocumentListResponse, DocumentResponse, SearchResponse, SearchResultItem
+   - 모든 요청/응답에 Field() 설명, validation 제약, json_schema_extra 예제
+   - 전 엔드포인트 summary + 상세 docstring (파이프라인 설명, 모드 설명 등)
+   - Health 엔드포인트: /docs, /redoc, /dashboard 링크 반환
+
+4. **대시보드 사이드바 API 링크**
+   - "API" 섹션 추가: Swagger UI (/docs) + ReDoc (/redoc) 외부 링크
+   - 대시보드에서 바로 API 문서 접근 가능
+
+**API 현황 (11개 엔드포인트)**:
+| Method | Path | Tag | Summary |
+|---|---|---|---|
+| GET | /health | admin | Health check |
+| GET | /api/settings | admin | Get settings |
+| PUT | /api/settings | admin | Update settings |
+| POST | /api/ingest | documents | Upload a document |
+| GET | /api/documents | documents | List documents |
+| GET | /api/documents/{id} | documents | Get document details |
+| DELETE | /api/documents/{id} | documents | Delete a document |
+| POST | /api/search | search | Hybrid search |
+| GET | /api/graph | graph | Get knowledge graph |
+| GET | /api/graph/node/{id} | graph | Get node details |
+| MOUNT | /dashboard | — | React SPA |
+
+**자동 생성 문서 URL**:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+---
+
+### 2026-03-17 — 전체 구현 완료 (v0.3)
+
+**배경**: 전략 문서 v0.2 기반으로 전체 프로젝트 구현 시작. 4 Wave 병렬 실행.
+
+**실행 방식**:
+- Wave 1 (T1-T5): T1 선행 후 T2-T5 병렬
+- Wave 2 (T6-T11): T6-T10 병렬, T11은 T10 완료 후
+- Wave 3 (T12-T16): T12 선행 후 T13 → T14 + T15 + T16 병렬
+- Wave 4 (T17-T22): T17-T21(대시보드) + T2(문서 재시도) + T22 병렬
+
+**산출물 (커밋 3개, 65+ files, 8,000+ lines)**:
+
+| 커밋 | 내용 | 파일 |
+|---|---|---|
+| `4ba3db8` | 프로젝트 스캐폴딩 | 20 files |
+| `61acb2c` | 전체 구현 (백엔드 + 대시보드 + 문서) | 65 files, +8,122 lines |
+| `b0024e3` | Swagger/Docker 보강 | 9 files, +261/-66 lines |
+
+**구현 완료 모듈**:
+
+1. **코어 엔진** (8 모듈):
+   - `embedder.py` — Ollama + OpenAI 어댑터, 팩토리 패턴, 배치 처리
+   - `chunker.py` — RecursiveChunker, SemanticChunker, PageChunker + 팩토리
+   - `vector_store.py` — pgvector CRUD, HNSW 코사인 검색, halfvec 포맷팅
+   - `fts.py` — tsvector + GIN, websearch_to_tsquery, ts_rank_cd(BM25 근사)
+   - `graph_store.py` — 노드/엣지 CRUD, 2홉 BFS CTE, 양방향 탐색, 사이클 방지
+   - `hybrid_search.py` — RRF 융합 (k=60), 4가지 모드 (vector/fts/graph/hybrid)
+   - `extractor.py` — LLM 엔티티/관계 추출, 위키링크 감지, JSON 파싱 (코드블록 허용)
+   - `pipeline.py` — E2E 파이프라인 (parse→chunk→embed→store→extract→graph), 진행률 추적, 에러 핸들링
+
+2. **API** (6 파일, 11 엔드포인트 + Swagger/ReDoc):
+   - `auth.py` — X-API-Key 검증 (미설정시 전체 허용)
+   - `middleware.py` — CORS (전체 허용)
+   - `ingest.py` — 문서 업로드 + BackgroundTask 파이프라인 연동
+   - `search.py` — 하이브리드 검색 (쿼리 임베딩 → 3중 검색 → RRF)
+   - `graph.py` — 그래프 데이터 + 노드 상세 (이웃 포함)
+   - `admin.py` — 헬스체크 + 설정 CRUD
+
+3. **파서** (6종):
+   - PDF (pypdf + pdfplumber), DOCX (python-docx), XLSX (openpyxl), PPTX (python-pptx), Markdown (YAML 프론트매터), Text (인코딩 자동감지)
+   - 모든 파서 MIT/BSD 라이선스 ✅
+
+4. **DB** (6 테이블, 8 인덱스):
+   - schema.sql: documents, chunks(halfvec+tsvector), graph_nodes, graph_edges, communities, settings
+   - connection.py: asyncpg 풀, halfvec 코덱, 스키마 자동 초기화
+
+5. **대시보드** (React SPA, 4 페이지):
+   - Documents: 업로드(드래그앤드롭), 목록(상태 배지), 삭제, 자동 새로고침
+   - Search: 쿼리 입력, 모드 선택기, Top-K 슬라이더, 결과 카드
+   - Graph: react-force-graph-2d, 노드 타입별 색상, 클릭 상세, 범례
+   - Settings: 폼 필드(chunk_size, threshold 등), API Key(localStorage), 저장 피드백
+
+6. **인프라**:
+   - CLI: serve, init-db, ingest 커맨드 (argparse + uvicorn)
+   - Docker: 멀티스테이지 빌드 (Node→Python), pgvector:pg15 + Ollama + ModolRAG
+   - Makefile: dev, build, test, lint, format, docker-up/down/build/logs
+
+7. **문서** (4 파일, 740줄):
+   - README.md (226줄): 아키텍처도, Quick Start, 설정, 프로젝트 구조, 설계 결정
+   - docs/ARCHITECTURE.md (174줄): 파이프라인, RRF 공식, Graph CTE, 임베딩 어댑터
+   - docs/SCHEMA.md (190줄): 6 테이블 DDL, 인덱스 전략, ER 다이어그램
+   - docs/MODOLAI_INTEGRATION.md (150줄): 연동 아키텍처, 코드 예제, Docker 네트워크, 트러블슈팅
+
+**검증 결과**:
+- ✅ `pip install -e .` 성공 (python3.11)
+- ✅ 전체 모듈 트리 import 통과 (15 routes registered)
+- ✅ RecursiveChunker, PageChunker 테스트 통과
+- ✅ RRF 융합 테스트 통과
+- ✅ Wikilink 추출 테스트 통과
+- ✅ 대시보드 빌드 성공 (182ms)
+- ✅ OpenAPI 태그 4개, response 모델 적용 확인
+
+---
+
 ### 2026-03-17 — 전략 문서 보강 (v0.2)
 
 **배경**: 기존 오픈소스 RAG 생태계 대비 ModolRAG 전략 분석 수행. 8개 경쟁 프로젝트(RAGFlow, LightRAG, R2R, Kotaemon, GraphRAG, Cognee, AnythingLLM, Verba) + pgvector 프로덕션 벤치마크 + ModolAI 기존 코드베이스 분석.

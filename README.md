@@ -99,9 +99,66 @@ curl http://localhost:8000/api/graph \
 ```bash
 git clone https://github.com/your-org/ModolRAG.git
 cd ModolRAG
+
+# Start everything (PostgreSQL + Ollama + ModolRAG)
 docker compose up -d
-# → PostgreSQL + ModolRAG running on http://localhost:8000
+
+# Download embedding model (first time only)
+docker compose exec ollama ollama pull nomic-embed-text
+
+# Verify
+curl http://localhost:8000/health
+# → {"status": "ok", "version": "0.1.0", "docs": "/docs", ...}
 ```
+
+### Services
+
+| Service | Port | Description |
+|---|---|---|
+| **modolrag** | `8000` | RAG API + Dashboard + Swagger |
+| **postgres** | `5432` | PostgreSQL 15 + pgvector |
+| **ollama** | `11434` | Local embedding model |
+
+### Without Ollama (using OpenAI)
+
+```bash
+# Start only PostgreSQL + ModolRAG
+docker compose up -d postgres modolrag
+
+# Configure OpenAI
+MODOLRAG_EMBEDDING_PROVIDER=openai \
+MODOLRAG_OPENAI_API_KEY=sk-xxx \
+docker compose up -d modolrag
+```
+
+### Custom Configuration
+
+Create a `.env` file in the project root:
+
+```env
+# Database
+POSTGRES_PASSWORD=your-secure-password
+PG_PORT=5432
+
+# ModolRAG
+MODOLRAG_PORT=8000
+MODOLRAG_API_KEYS=key1,key2
+MODOLRAG_EMBEDDING_PROVIDER=ollama
+MODOLRAG_EMBEDDING_MODEL=nomic-embed-text
+
+# OpenAI (if not using Ollama)
+# MODOLRAG_EMBEDDING_PROVIDER=openai
+# MODOLRAG_OPENAI_API_KEY=sk-xxx
+```
+
+### URLs
+
+| URL | Description |
+|---|---|
+| `http://localhost:8000/dashboard` | Admin Dashboard (React SPA) |
+| `http://localhost:8000/docs` | Swagger UI (interactive API testing) |
+| `http://localhost:8000/redoc` | ReDoc (API documentation) |
+| `http://localhost:8000/health` | Health check |
 
 ---
 
@@ -200,20 +257,36 @@ ModolRAG/
 
 ## API Reference
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/ingest` | Upload document (multipart) |
-| `GET` | `/api/documents` | List documents |
-| `GET` | `/api/documents/{id}` | Document details |
-| `DELETE` | `/api/documents/{id}` | Delete document + chunks + graph |
-| `POST` | `/api/search` | Hybrid search |
-| `GET` | `/api/graph` | Graph nodes + edges |
-| `GET` | `/api/graph/node/{id}` | Node details + neighbors |
-| `GET` | `/api/settings` | Current settings |
-| `PUT` | `/api/settings` | Update settings |
-| `GET` | `/health` | Health check (no auth) |
+### Endpoints
 
-Full OpenAPI docs at `http://localhost:8000/docs`.
+| Method | Endpoint | Tag | Description |
+|---|---|---|---|
+| `GET` | `/health` | admin | Health check (no auth) |
+| `POST` | `/api/ingest` | documents | Upload document (multipart) |
+| `GET` | `/api/documents` | documents | List documents (filter by status) |
+| `GET` | `/api/documents/{id}` | documents | Document details + processing status |
+| `DELETE` | `/api/documents/{id}` | documents | Delete document + chunks + graph |
+| `POST` | `/api/search` | search | Hybrid search (vector/fts/graph/hybrid) |
+| `GET` | `/api/graph` | graph | Knowledge graph nodes + edges |
+| `GET` | `/api/graph/node/{id}` | graph | Node details + 1-hop neighbors |
+| `GET` | `/api/settings` | admin | Current RAG settings |
+| `PUT` | `/api/settings` | admin | Update settings |
+
+### Interactive Documentation
+
+ModolRAG auto-generates full API documentation with request/response schemas and live testing:
+
+| URL | Format | Best For |
+|---|---|---|
+| [`/docs`](http://localhost:8000/docs) | **Swagger UI** | Interactive testing — try endpoints directly in browser |
+| [`/redoc`](http://localhost:8000/redoc) | **ReDoc** | Reading — clean, print-friendly documentation |
+| [`/openapi.json`](http://localhost:8000/openapi.json) | **OpenAPI 3.1** | Code generation — import into Postman, Insomnia, etc. |
+
+All endpoints include:
+- Pydantic request/response models with field descriptions
+- Validation constraints (min/max values, required fields)
+- Example payloads for quick testing
+- Tag-based grouping (documents, search, graph, admin)
 
 ---
 
