@@ -1,4 +1,4 @@
-.PHONY: dev build test lint docker-up docker-down clean
+.PHONY: dev build test lint docker-up docker-down docker-build docker-logs clean
 
 dev:
 	modolrag serve --reload
@@ -21,6 +21,12 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+docker-build:
+	docker compose build
+
+docker-logs:
+	docker compose logs -f modolrag
 
 clean:
 	rm -rf build/ dist/ *.egg-info .pytest_cache __pycache__

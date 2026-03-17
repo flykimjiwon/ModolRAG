@@ -29,6 +29,11 @@ class Settings(BaseSettings):
 
     model_config = {"env_prefix": "MODOLRAG_", "env_file": ".env", "extra": "ignore"}
 
+    @property
+    def parsed_api_keys(self) -> list[str]:
+        """Parse comma-separated API keys and strip whitespace."""
+        return [k.strip() for k in self.API_KEYS.split(",") if k.strip()]
+
 
 def get_settings() -> Settings:
     return Settings()

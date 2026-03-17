@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: modolrag
+      POSTGRES_USER: modolrag
+      POSTGRES_PASSWORD: modolrag
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modolrag"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  modolrag:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MODOLRAG_POSTGRES_URI: postgresql://modolrag:modolrag@postgres:5432/modolrag
+      MODOLRAG_API_KEYS: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "python -c 'import asyncio; from modolrag.db import init_schema; asyncio.run(init_schema())' && 
+             uvicorn modolrag.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  pgdata:
