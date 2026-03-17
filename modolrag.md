@@ -1407,6 +1407,125 @@ curl http://localhost:8000/health  # Expected: 200, {"status": "ok"}
 
 > 모든 작업 과정을 누적 기록. 최신 항목이 위에 위치.
 
+### 2026-03-17 — README 전면 재작성 (v0.7)
+
+**배경**: 비개발자도 이해할 수 있는 사용 가이드, 기술 스택 상세, API 문서 보는 방법, Swagger 활용 가이드 등을 포함한 종합 README 요구.
+
+**변경 사항**:
+- README.md 전면 재작성 (359줄 → **620줄**)
+- "How It Works" 비개발자 가이드 추가: 4단계 플로우 (업로드→컬렉션→LLM 연결→API 사용)
+- Tech Stack 테이블: 16개 기술 구성 요소 + 라이선스 명시
+- Table of Contents 추가 (15개 섹션 링크)
+- API Reference: 16개 엔드포인트 전체 목록 + 요청/응답 예시
+- API Documentation 섹션: Swagger UI 사용법 단계별 가이드, Postman 임포트 방법
+- Dashboard 페이지 목록: 6개 페이지 + API Docs 링크
+- Collections 사용 가이드: curl 예제 4단계 + 멀티 컬렉션 예시
+- Tech Stack Details: PostgreSQL-only 근거, LangChain 미사용 이유, RRF 공식, 파서별 라이선스
+- 프로젝트 구조: 8개 테이블 목록 + 디렉토리 트리
+- Docker 설정: 서비스 테이블, .env 예제, OpenAI 전환 방법
+
+---
+
+### 2026-03-17 — 컬렉션 시스템 + 스킬 설정 (v0.6)
+
+**배경**: 문서 세트별 검색 범위 한정 기능 요구. 예: "Backend 문서만 검색", "HR 정책만 검색". ModolAI 스킬 설정도 적용.
+
+**변경 사항**:
+
+1. **컬렉션(Collection) 시스템**
+
+   스키마 추가:
+   - `modolrag_collections` — id, name(UNIQUE), description, created_at
+   - `modolrag_collection_documents` — collection_id, document_id (복합 PK, 양방향 CASCADE)
+   - 인덱스: `idx_colldocs_collection`, `idx_colldocs_document`
+
+   API 6개 추가 (`collections` 태그):
+   | Method | Path | 기능 |
+   |---|---|---|
+   | POST | /api/collections | 컬렉션 생성 |
+   | GET | /api/collections | 컬렉션 목록 (문서 수 포함) |
+   | GET | /api/collections/{id} | 컬렉션 상세 + 소속 문서 목록 |
+   | DELETE | /api/collections/{id} | 컬렉션 삭제 (문서는 유지) |
+   | POST | /api/collections/{id}/documents | 문서 추가 (같은 문서 여러 컬렉션 가능) |
+   | DELETE | /api/collections/{id}/documents | 문서 제거 (문서 자체는 삭제 안 됨) |
+
+   검색 연동:
+   - `POST /api/search` 에 `collection_id` 파라미터 추가
+   - `collection_id` 지정 시 → 해당 컬렉션 소속 문서만 벡터+FTS 검색
+   - 미지정 시 → 전체 문서 검색 (기존 동작 유지)
+   - `vector_store.search_similar()` + `fts.search_fts()` 에 `document_ids` 필터 추가
+   - `hybrid_search()` 에 `document_ids` 전파
+
+   대시보드:
+   - Collections 페이지 추가 (📚 아이콘)
+   - 좌: 컬렉션 생성/목록/삭제
+   - 우: 선택된 컬렉션의 문서 할당/제거 (Available → Assigned)
+   - Search 페이지에 컬렉션 드롭다운 필터 추가
+
+2. **ModolAI 스킬 설정 복사**
+   - `.agents/skills/` — find-skills, frontend-design, vercel-react-best-practices, web-design-guidelines
+   - `.claude/skills/` — 동일 구조 복사
+   - vercel-react-best-practices: 60+ rules 포함
+
+**E2E 검증**:
+```
+3개 문서 업로드 (A=Python, B=PostgreSQL, C=React)
+  ↓
+2개 컬렉션 (Backend=[A,B], Frontend=[C])
+  ↓
+전체 검색 "programming" → 3 results ✅
+Backend 검색 → 2 results (A,B만) ✅
+Frontend 검색 → 1 result (C만) ✅
+```
+
+**최종 API 현황 (16개 엔드포인트, 5개 태그)**:
+
+| # | Method | Path | Tag | Summary |
+|---|---|---|---|---|
+| 1 | GET | /health | admin | 헬스체크 + URL 링크 |
+| 2 | GET | /api/settings | admin | RAG 설정 조회 |
+| 3 | PUT | /api/settings | admin | RAG 설정 수정 |
+| 4 | POST | /api/ingest | documents | 문서 업로드 → 자동 파이프라인 |
+| 5 | GET | /api/documents | documents | 문서 목록 (상태 필터) |
+| 6 | GET | /api/documents/{id} | documents | 문서 상세 |
+| 7 | DELETE | /api/documents/{id} | documents | 문서 삭제 |
+| 8 | POST | /api/search | search | 하이브리드 검색 (collection_id 필터) |
+| 9 | GET | /api/graph | graph | 그래프 데이터 |
+| 10 | GET | /api/graph/node/{id} | graph | 노드 상세 + 이웃 |
+| 11 | POST | /api/collections | collections | 컬렉션 생성 |
+| 12 | GET | /api/collections | collections | 컬렉션 목록 |
+| 13 | GET | /api/collections/{id} | collections | 컬렉션 상세 |
+| 14 | DELETE | /api/collections/{id} | collections | 컬렉션 삭제 |
+| 15 | POST | /api/collections/{id}/documents | collections | 문서 추가 |
+| 16 | DELETE | /api/collections/{id}/documents | collections | 문서 제거 |
+
+**대시보드 페이지 (6개 + API 링크 2개)**:
+
+| 페이지 | 기능 |
+|---|---|
+| 📄 Documents | 업로드, 목록, 상태 배지, 삭제, 자동 새로고침 |
+| 📚 Collections | 컬렉션 CRUD, 문서 할당/제거 |
+| 🔍 Search | 쿼리 + 모드 + 컬렉션 필터 + Top-K |
+| 🕸️ Graph | react-force-graph-2d 시각화 + 노드 상세 |
+| ⚙️ Settings | 설정 폼 + API Key (localStorage) |
+| 📖 API Docs | → /docs (Swagger UI) |
+| 📋 ReDoc | → /redoc |
+
+**DB 스키마 (8개 테이블, 10+ 인덱스)**:
+
+| 테이블 | 용도 |
+|---|---|
+| modolrag_documents | 문서 메타데이터 + 처리 상태 |
+| modolrag_document_chunks | 청크 + embedding(halfvec 768) + tsvector(auto) |
+| modolrag_graph_nodes | 지식 그래프 엔티티 |
+| modolrag_graph_edges | 엔티티 관계 |
+| modolrag_communities | 그래프 커뮤니티 |
+| modolrag_settings | 전역 설정 (singleton) |
+| modolrag_collections | 문서 컬렉션 |
+| modolrag_collection_documents | 컬렉션-문서 연결 (junction) |
+
+---
+
 ### 2026-03-17 — 실행 환경 + 원커맨드 배포 (v0.5)
 
 **배경**: 로컬 환경에서 `pip install modolrag` 실행 불가 (시스템 Python 3.9, pip 미등록). 포트 충돌 방지 필요. 서비스 전체를 한 번에 띄우는 방법 요구.
