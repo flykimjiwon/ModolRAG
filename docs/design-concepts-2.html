@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ModolRAG — Design Concepts Vol.2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'Noto Sans KR', sans-serif; background: #0a0a0a; color: #fff; padding: 40px 24px; }
+h1 { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+.sub { text-align: center; color: #555; font-size: 14px; margin-bottom: 48px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; max-width: 1200px; margin: 0 auto; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card-wrap { display: flex; flex-direction: column; gap: 12px; }
+.label { font-size: 13px; font-weight: 700; color: #555; letter-spacing: 0.05em; text-transform: uppercase; }
+.label span { color: #ddd; }
+.mockup { width: 100%; height: 380px; border-radius: 20px; overflow: hidden; display: flex; position: relative; font-size: 12px; }
+.sidebar { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px 12px; gap: 4px; }
+.content { flex: 1; padding: 24px; overflow: hidden; }
+.logo { font-weight: 800; font-size: 15px; margin-bottom: 20px; padding: 0 8px; line-height: 1.3; }
+.nav-item { padding: 9px 12px; border-radius: 10px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.nav-item.active { font-weight: 700; }
+.page-title { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+.doc-card { border-radius: 14px; padding: 14px; margin-bottom: 10px; font-size: 11px; }
+.tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.upload-zone { border-radius: 16px; padding: 20px; text-align: center; font-size: 11px; margin-bottom: 14px; }
+.search-bar { border-radius: 12px; padding: 10px 14px; font-size: 12px; margin-bottom: 14px; }
+
+/* 11 — MIDNIGHT TOKYO */
+.theme-tokyo .mockup { background: #0d0010; }
+.theme-tokyo .sidebar { background: #110015; border-right: 1px solid #ff006622; }
+.theme-tokyo .logo { color: #ff0080; text-shadow: 0 0 20px #ff008080; font-size: 16px; }
+.theme-tokyo .nav-item { color: #66006a; }
+.theme-tokyo .nav-item.active { background: linear-gradient(90deg,#ff008020,#00ffcc10); color: #ff80c0; border: 1px solid #ff008044; border-radius: 8px; }
+.theme-tokyo .page-title { color: #ffd6ef; }
+.theme-tokyo .upload-zone { border: 1px solid #ff008033; background: #ff00800a; color: #ff80a0; }
+.theme-tokyo .doc-card { background: #140018; border: 1px solid #ff006622; color: #cc88bb; }
+.theme-tokyo .tag { background: #ff008020; color: #ff0080; text-shadow: 0 0 8px #ff008066; }
+
+/* 12 — SAND DUNE */
+.theme-sand .mockup { background: #fdf6ec; }
+.theme-sand .sidebar { background: #f5e8d0; border-right: 1px solid #e0cca8; }
+.theme-sand .logo { color: #7a5020; font-family: 'Georgia', serif; font-style: italic; }
+.theme-sand .nav-item { color: #a08050; }
+.theme-sand .nav-item.active { background: #e8d0a0; color: #5a3010; border-radius: 8px; }
+.theme-sand .page-title { color: #3a2008; font-family: Georgia, serif; }
+.theme-sand .upload-zone { border: 2px dashed #c8a870; background: #faf0dc; color: #9a7040; border-radius: 12px; }
+.theme-sand .doc-card { background: #fff8ec; border: 1px solid #e0cca8; color: #5a4020; border-radius: 10px; }
+.theme-sand .tag { background: #e0c888; color: #7a4010; }
+
+/* 13 — RETRO TERMINAL */
+.theme-terminal .mockup { background: #001100; }
+.theme-terminal .sidebar { background: #000d00; border-right: 1px solid #00ff0022; }
+.theme-terminal .logo { color: #00ff00; font-family: monospace; font-size: 13px; letter-spacing: 2px; text-shadow: 0 0 8px #00ff0088; }
+.theme-terminal .nav-item { color: #005500; font-family: monospace; font-size: 11px; }
+.theme-terminal .nav-item.active { color: #00ff00; background: #00ff000f; font-family: monospace; text-shadow: 0 0 6px #00ff0066; }
+.theme-terminal .page-title { color: #00ff00; font-family: monospace; letter-spacing: 2px; font-size: 16px; text-shadow: 0 0 10px #00ff0066; }
+.theme-terminal .upload-zone { border: 1px solid #00ff0033; background: #00110000; color: #00aa00; font-family: monospace; }
+.theme-terminal .doc-card { background: #001a00; border: 1px solid #00ff0022; color: #00cc00; font-family: monospace; }
+.theme-terminal .tag { background: transparent; color: #00ff00; border: 1px solid #00ff0066; font-family: monospace; }
+
+/* 14 — ROSÉ */
+.theme-rose .mockup { background: #fff0f4; }
+.theme-rose .sidebar { background: #ffe8ef; border-right: 1px solid #f4c8d4; }
+.theme-rose .logo { color: #cc3366; }
+.theme-rose .nav-item { color: #c08090; }
+.theme-rose .nav-item.active { background: linear-gradient(135deg, #ff6699, #ff99bb); color: #fff; box-shadow: 0 4px 16px #ff669944; border-radius: 10px; }
+.theme-rose .page-title { color: #660033; }
+.theme-rose .upload-zone { border: 2px dashed #f4b0c0; background: #fff5f8; color: #cc6688; border-radius: 20px; }
+.theme-rose .doc-card { background: #fff; border: 1px solid #f4c8d4; color: #882244; border-radius: 14px; box-shadow: 0 2px 12px #ff669918; }
+.theme-rose .tag { background: #ffe0ea; color: #cc3366; }
+
+/* 15 — OBSIDIAN GOLD */
+.theme-obsidian .mockup { background: #0a0a0a; }
+.theme-obsidian .sidebar { background: #111111; border-right: 1px solid #c8a84422; }
+.theme-obsidian .logo { color: #c8a844; font-size: 16px; font-weight: 900; letter-spacing: 2px; }
+.theme-obsidian .nav-item { color: #555; }
+.theme-obsidian .nav-item.active { background: linear-gradient(90deg,#c8a84415,#c8a84408); color: #c8a844; border: 1px solid #c8a84433; border-radius: 8px; }
+.theme-obsidian .page-title { color: #fff; }
+.theme-obsidian .upload-zone { border: 1px solid #c8a84433; background: #c8a84408; color: #c8a844; }
+.theme-obsidian .doc-card { background: #161616; border: 1px solid #333; color: #ccc; }
+.theme-obsidian .tag { background: #c8a84420; color: #c8a844; border: 1px solid #c8a84444; }
+
+/* 16 — ARCTIC ICE */
+.theme-arctic .mockup { background: linear-gradient(160deg, #e8f4ff 0%, #d0ecff 100%); }
+.theme-arctic .sidebar { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.8); }
+.theme-arctic .logo { color: #005fa3; }
+.theme-arctic .nav-item { color: #80aac0; }
+.theme-arctic .nav-item.active { background: rgba(0,120,200,0.1); color: #005fa3; border: 1px solid rgba(0,120,200,0.2); border-radius: 10px; }
+.theme-arctic .page-title { color: #003060; }
+.theme-arctic .upload-zone { border: 2px dashed #80c0e0; background: rgba(255,255,255,0.5); color: #4090c0; }
+.theme-arctic .doc-card { background: rgba(255,255,255,0.8); border: 1px solid rgba(0,120,200,0.15); color: #205080; box-shadow: 0 4px 20px rgba(0,100,200,0.08); }
+.theme-arctic .tag { background: rgba(0,150,255,0.1); color: #005fa3; }
+
+/* 17 — LAVA */
+.theme-lava .mockup { background: #0f0500; }
+.theme-lava .sidebar { background: #150800; border-right: 1px solid #ff440022; }
+.theme-lava .logo { background: linear-gradient(90deg,#ff4400,#ff8800); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:16px; }
+.theme-lava .nav-item { color: #5a2200; }
+.theme-lava .nav-item.active { background: linear-gradient(90deg,#ff440018,#ff880010); color: #ff8844; border: 1px solid #ff440033; border-radius: 8px; }
+.theme-lava .page-title { color: #ffddcc; }
+.theme-lava .upload-zone { border: 1px solid #ff440033; background: #ff44000a; color: #ff6622; }
+.theme-lava .doc-card { background: #1a0a00; border: 1px solid #ff440022; color: #cc8844; }
+.theme-lava .tag { background: #ff440020; color: #ff6622; }
+
+/* 18 — NEWSPAPER */
+.theme-news .mockup { background: #f5f2eb; }
+.theme-news .sidebar { background: #eae5d8; border-right: 3px double #333; }
+.theme-news .logo { font-family: 'Times New Roman', serif; font-size: 17px; color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 16px; }
+.theme-news .nav-item { color: #555; font-family: Times, serif; font-size: 13px; }
+.theme-news .nav-item.active { color: #000; font-weight: 900; border-left: 3px solid #333; padding-left: 9px; background: transparent; }
+.theme-news .page-title { font-family: 'Times New Roman', serif; font-size: 24px; font-weight: 900; color: #000; letter-spacing: -0.5px; border-bottom: 3px double #333; padding-bottom: 8px; margin-bottom: 14px; }
+.theme-news .upload-zone { border: 2px solid #333; background: transparent; color: #333; border-radius: 0; font-family: monospace; }
+.theme-news .doc-card { background: #fff; border: 1px solid #ccc; border-radius: 0; color: #222; font-family: Georgia, serif; border-left: 3px solid #333; padding-left: 12px; }
+.theme-news .tag { background: #333; color: #fff; border-radius: 2px; font-family: monospace; }
+
+/* 19 — HOLOGRAPHIC */
+.theme-holo .mockup { background: #0a0a12; }
+.theme-holo .sidebar { background: rgba(255,255,255,0.03); border-right: 1px solid transparent; border-image: linear-gradient(180deg,#ff00ff,#00ffff,#ffff00) 1; }
+.theme-holo .logo { background: linear-gradient(90deg,#ff00ff,#00ffff,#ffff00,#ff00ff); background-size: 200%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation-like: shimmer; font-size:16px; font-weight:900; }
+.theme-holo .nav-item { color: rgba(255,255,255,0.25); }
+.theme-holo .nav-item.active { background: linear-gradient(135deg, rgba(255,0,255,0.15), rgba(0,255,255,0.15)); color: #e0e0ff; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; }
+.theme-holo .page-title { background: linear-gradient(90deg,#ff88ff,#88ffff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:22px; }
+.theme-holo .upload-zone { border: 1px solid rgba(255,255,255,0.15); background: linear-gradient(135deg,rgba(255,0,255,0.05),rgba(0,255,255,0.05)); color: rgba(255,255,255,0.4); }
+.theme-holo .doc-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+.theme-holo .tag { background: linear-gradient(90deg,rgba(255,0,255,0.2),rgba(0,255,255,0.2)); color: #e0e0ff; border: 1px solid rgba(255,255,255,0.2); }
+
+/* 20 — SAGE BOTANICAL */
+.theme-sage .mockup { background: #f4f7f2; }
+.theme-sage .sidebar { background: #e8f0e4; border-right: 1px solid #c8d8c0; }
+.theme-sage .logo { color: #2d5a27; font-weight: 900; }
+.theme-sage .nav-item { color: #7a9870; }
+.theme-sage .nav-item.active { background: #c8dcc0; color: #1a4015; border-radius: 10px; }
+.theme-sage .page-title { color: #1a3015; }
+.theme-sage .upload-zone { border: 2px dashed #90b888; background: #eef4ea; color: #5a8050; border-radius: 18px; }
+.theme-sage .doc-card { background: #fff; border: 1px solid #c8d8c0; color: #2d4828; box-shadow: 0 2px 8px rgba(60,120,50,0.06); border-radius: 12px; }
+.theme-sage .tag { background: #d4e8cc; color: #2d5a27; }
+
+/* 21 — MIDNIGHT NAVY + GOLD */
+.theme-navy .mockup { background: #060d1e; }
+.theme-navy .sidebar { background: #080f24; border-right: 1px solid #1a2a50; }
+.theme-navy .logo { color: #d4aa60; font-weight: 900; letter-spacing: 1px; }
+.theme-navy .nav-item { color: #304070; }
+.theme-navy .nav-item.active { background: linear-gradient(90deg,#1a2a5080,#1a2a5040); color: #d4aa60; border: 1px solid #d4aa6033; border-radius: 8px; }
+.theme-navy .page-title { color: #e8e0d0; }
+.theme-navy .upload-zone { border: 1px solid #d4aa6033; background: #d4aa6008; color: #a08040; }
+.theme-navy .doc-card { background: #0c1428; border: 1px solid #1a2a50; color: #8090b0; }
+.theme-navy .tag { background: #d4aa6018; color: #d4aa60; border: 1px solid #d4aa6033; }
+
+/* 22 — COTTON CANDY */
+.theme-cotton .mockup { background: linear-gradient(135deg, #fff0f8 0%, #f0f0ff 100%); }
+.theme-cotton .sidebar { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,200,230,0.5); }
+.theme-cotton .logo { background: linear-gradient(90deg,#ff80c0,#c080ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:16px; }
+.theme-cotton .nav-item { color: #c0a0c8; }
+.theme-cotton .nav-item.active { background: linear-gradient(135deg, #ffb0d840, #c0b0ff40); color: #884488; border: 1px solid rgba(200,100,200,0.3); border-radius: 12px; }
+.theme-cotton .page-title { background: linear-gradient(90deg,#cc40aa,#8844cc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.theme-cotton .upload-zone { border: 2px dashed #ffaad0; background: rgba(255,200,230,0.2); color: #cc80aa; border-radius: 22px; }
+.theme-cotton .doc-card { background: rgba(255,255,255,0.9); border: 1px solid rgba(255,150,200,0.3); color: #884488; box-shadow: 0 4px 20px rgba(200,100,200,0.1); border-radius: 16px; }
+.theme-cotton .tag { background: linear-gradient(90deg,#ffcce080,#ddc0ff80); color: #884488; }
+
+/* 23 — INDUSTRIAL */
+.theme-industrial .mockup { background: #1a1a1a; }
+.theme-industrial .sidebar { background: #111; border-right: 3px solid #f5c518; }
+.theme-industrial .logo { color: #f5c518; font-family: monospace; font-size: 14px; letter-spacing: 3px; font-weight: 900; }
+.theme-industrial .nav-item { color: #555; font-family: monospace; font-size: 11px; }
+.theme-industrial .nav-item.active { background: #f5c51810; color: #f5c518; border-left: 3px solid #f5c518; padding-left: 9px; border-radius: 0 8px 8px 0; }
+.theme-industrial .page-title { color: #f5c518; font-family: monospace; letter-spacing: 2px; text-transform: uppercase; }
+.theme-industrial .upload-zone { border: 2px solid #f5c518; background: transparent; color: #f5c518; border-radius: 0; font-family: monospace; }
+.theme-industrial .doc-card { background: #222; border: 1px solid #333; border-left: 3px solid #f5c518; color: #aaa; border-radius: 0 8px 8px 0; }
+.theme-industrial .tag { background: #f5c518; color: #000; border-radius: 0; font-family: monospace; font-weight: 900; }
+
+/* 24 — SAKURA */
+.theme-sakura .mockup { background: linear-gradient(160deg, #fff5f8 0%, #fce8f0 100%); }
+.theme-sakura .sidebar { background: rgba(255,255,255,0.8); border-right: 1px solid #f8d0e0; }
+.theme-sakura .logo { color: #d44470; }
+.theme-sakura .nav-item { color: #e090a8; }
+.theme-sakura .nav-item.active { background: linear-gradient(135deg,#ff80aa20,#ff60a020); color: #cc2255; border: 1px solid #ff80aa44; border-radius: 20px; }
+.theme-sakura .page-title { color: #8a1130; font-size: 22px; }
+.theme-sakura .upload-zone { border: 2px dashed #f0a0c0; background: rgba(255,200,220,0.15); color: #d04470; border-radius: 24px; }
+.theme-sakura .doc-card { background: rgba(255,255,255,0.9); border: 1px solid #f8d0e0; color: #7a2244; border-radius: 18px; box-shadow: 0 4px 16px rgba(220,100,140,0.08); }
+.theme-sakura .tag { background: #fde0ea; color: #cc2255; }
+
+/* 25 — CARBON FIBER */
+.theme-carbon .mockup { background: repeating-linear-gradient(45deg,#141414 0px,#141414 2px,#1a1a1a 2px,#1a1a1a 4px); }
+.theme-carbon .sidebar { background: rgba(20,20,20,0.95); border-right: 1px solid #2a2a2a; }
+.theme-carbon .logo { color: #e0e0e0; font-weight: 900; letter-spacing: 2px; font-size: 16px; }
+.theme-carbon .nav-item { color: #444; }
+.theme-carbon .nav-item.active { background: linear-gradient(90deg,#2a2a2a,#242424); color: #e0e0e0; border: 1px solid #404040; border-radius: 8px; }
+.theme-carbon .page-title { color: #f0f0f0; }
+.theme-carbon .upload-zone { border: 1px solid #333; background: rgba(30,30,30,0.8); color: #666; }
+.theme-carbon .doc-card { background: rgba(25,25,25,0.9); border: 1px solid #2a2a2a; color: #aaa; }
+.theme-carbon .tag { background: #282828; color: #e0e0e0; border: 1px solid #444; }
+
+/* 26 — VINTAGE AMBER */
+.theme-amber .mockup { background: #1a1000; }
+.theme-amber .sidebar { background: #120d00; border-right: 1px solid #6a4a1022; }
+.theme-amber .logo { color: #ffb830; font-family: Georgia, serif; font-style: italic; text-shadow: 0 0 20px #ffb83066; }
+.theme-amber .nav-item { color: #4a3800; font-family: Georgia, serif; }
+.theme-amber .nav-item.active { background: #ffb83015; color: #ffb830; border: 1px solid #ffb83033; border-radius: 8px; }
+.theme-amber .page-title { color: #ffe0a0; font-family: Georgia, serif; font-style: italic; }
+.theme-amber .upload-zone { border: 1px solid #ffb83033; background: #ffb83008; color: #aa8020; }
+.theme-amber .doc-card { background: #1e1600; border: 1px solid #ffb83022; color: #cc9940; }
+.theme-amber .tag { background: #ffb83020; color: #ffb830; }
+
+/* 27 — MATRIX */
+.theme-matrix .mockup { background: #000; }
+.theme-matrix .sidebar { background: #000; border-right: 1px solid #003300; }
+.theme-matrix .logo { color: #00dd00; font-family: monospace; font-size: 13px; letter-spacing: 3px; }
+.theme-matrix .nav-item { color: #004400; font-family: monospace; font-size: 11px; }
+.theme-matrix .nav-item.active { color: #00ff41; font-family: monospace; text-shadow: 0 0 10px #00ff4166; background: #00110000; border-left: 2px solid #00ff41; padding-left: 10px; border-radius: 0; }
+.theme-matrix .page-title { color: #00ff41; font-family: monospace; letter-spacing: 3px; text-shadow: 0 0 15px #00ff4166; }
+.theme-matrix .upload-zone { border: 1px solid #003300; background: transparent; color: #006600; font-family: monospace; font-size: 10px; }
+.theme-matrix .doc-card { background: #001100; border: 1px solid #003300; color: #009900; font-family: monospace; font-size: 10px; }
+.theme-matrix .tag { background: transparent; color: #00ff41; border: 1px solid #00aa2266; font-family: monospace; }
+
+/* 28 — DENIM */
+.theme-denim .mockup { background: #e8eef8; }
+.theme-denim .sidebar { background: #4060a0; }
+.theme-denim .logo { color: #fff; font-weight: 900; font-size: 16px; }
+.theme-denim .nav-item { color: rgba(255,255,255,0.5); }
+.theme-denim .nav-item.active { background: rgba(255,255,255,0.15); color: #fff; border-radius: 10px; }
+.theme-denim .page-title { color: #1a2a50; font-weight: 900; }
+.theme-denim .upload-zone { border: 2px dashed #8090c0; background: rgba(64,96,160,0.06); color: #6070a0; border-radius: 14px; }
+.theme-denim .doc-card { background: #fff; border: none; color: #2a3a60; box-shadow: 0 2px 16px rgba(64,96,160,0.12); border-radius: 14px; }
+.theme-denim .tag { background: #dde4f4; color: #4060a0; }
+
+/* 29 — CORAL REEF */
+.theme-coral .mockup { background: #fff8f5; }
+.theme-coral .sidebar { background: #fff0ea; border-right: 1px solid #ffd0bc; }
+.theme-coral .logo { color: #e83a14; }
+.theme-coral .nav-item { color: #e0907a; }
+.theme-coral .nav-item.active { background: linear-gradient(135deg,#ff6040,#ff8a60); color: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(255,96,64,0.3); }
+.theme-coral .page-title { color: #8a1800; }
+.theme-coral .upload-zone { border: 2px dashed #ffb8a0; background: #fff5f0; color: #e87050; border-radius: 20px; }
+.theme-coral .doc-card { background: #fff; border: 1px solid #ffd8c8; color: #7a2808; box-shadow: 0 2px 12px rgba(255,128,80,0.08); border-radius: 14px; }
+.theme-coral .tag { background: #fff0e8; color: #e83a14; }
+
+/* 30 — LAVENDER FIELDS */
+.theme-lavender .mockup { background: #f5f0ff; }
+.theme-lavender .sidebar { background: #ede5ff; border-right: 1px solid #d4c0f4; }
+.theme-lavender .logo { color: #5b2d8e; }
+.theme-lavender .nav-item { color: #a890c8; }
+.theme-lavender .nav-item.active { background: linear-gradient(135deg,#8855cc,#aa77ee); color: #fff; box-shadow: 0 4px 16px rgba(136,85,204,0.3); border-radius: 12px; }
+.theme-lavender .page-title { color: #2d0d5a; }
+.theme-lavender .upload-zone { border: 2px dashed #c0a0e4; background: rgba(200,170,240,0.15); color: #9060c0; border-radius: 22px; }
+.theme-lavender .doc-card { background: #fff; border: 1px solid #d4c0f4; color: #4a2070; box-shadow: 0 4px 20px rgba(136,85,204,0.08); border-radius: 16px; }
+.theme-lavender .tag { background: #ecdaff; color: #7833bb; }
+</style>
+</head>
+<body>
+<h1>ModolRAG — Design Concepts Vol.2</h1>
+<p class="sub">추가 시안 20개 (11번~30번) · 원하는 번호 말씀해주세요</p>
+
+<div class="grid">
+
+<!-- 11 -->
+<div class="card-wrap theme-tokyo">
+  <div class="label">11 · <span>Midnight Tokyo</span> — 미드나이트 도쿄 네온</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">MODOLRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">⬆ 파일을 드래그하세요<br><small>도시의 밤처럼 빠르게 처리됩니다</small></div>
+      <div class="doc-card">📄 제품 가이드.pdf <span class="tag">READY</span></div>
+      <div class="doc-card">📊 가격표.xlsx <span class="tag">PROC</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 -->
+<div class="card-wrap theme-sand">
+  <div class="label">12 · <span>Sand Dune</span> — 사막 모래 베이지</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">ModolRAG</div>
+      <div class="nav-item active">문서 관리</div>
+      <div class="nav-item">컬렉션</div>
+      <div class="nav-item">검색</div>
+      <div class="nav-item">그래프</div>
+      <div class="nav-item">설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">☀ 파일 업로드<br><small>사막의 여유로움처럼</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">API 문서.md <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 13 -->
+<div class="card-wrap theme-terminal">
+  <div class="label">13 · <span>Retro Terminal</span> — 레트로 터미널 그린</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">MODOLRAG_</div>
+      <div class="nav-item active">&gt; DOCUMENTS</div>
+      <div class="nav-item">&gt; COLLECTIONS</div>
+      <div class="nav-item">&gt; SEARCH</div>
+      <div class="nav-item">&gt; GRAPH</div>
+      <div class="nav-item">&gt; CONFIG</div>
+    </div>
+    <div class="content">
+      <div class="page-title">DOCUMENTS_</div>
+      <div class="upload-zone">[ DROP FILE OR PRESS ENTER ]<br><small>$ ingest --file ./document.pdf</small></div>
+      <div class="doc-card">product_guide.pdf <span class="tag">OK</span></div>
+      <div class="doc-card">pricing.xlsx <span class="tag">PROC</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 14 -->
+<div class="card-wrap theme-rose">
+  <div class="label">14 · <span>Rosé</span> — 로제 핑크</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">🌹 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🌸 파일을 드래그하세요</div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 15 -->
+<div class="card-wrap theme-obsidian">
+  <div class="label">15 · <span>Obsidian Gold</span> — 흑요석 + 골드</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">◆ MODOLRAG</div>
+      <div class="nav-item active">文 문서 관리</div>
+      <div class="nav-item">◎ 컬렉션</div>
+      <div class="nav-item">⊙ 검색</div>
+      <div class="nav-item">◈ 그래프</div>
+      <div class="nav-item">⊛ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">◇ 파일을 드래그하세요<br><small>최고급 지식 저장소</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">READY</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">PROC.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 16 -->
+<div class="card-wrap theme-arctic">
+  <div class="label">16 · <span>Arctic Ice</span> — 아이시 블루 글래스</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">❄ ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🧊 파일을 드래그하세요<br><small>청명한 지식의 세계</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 17 -->
+<div class="card-wrap theme-lava">
+  <div class="label">17 · <span>Lava</span> — 용암 레드/오렌지</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">🌋 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🔥 파일을 드래그하세요</div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">READY</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">PROC.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 18 -->
+<div class="card-wrap theme-news">
+  <div class="label">18 · <span>Newspaper</span> — 빈티지 신문</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">THE MODOLRAG TIMES</div>
+      <div class="nav-item active">문서 관리</div>
+      <div class="nav-item">컬렉션</div>
+      <div class="nav-item">검색</div>
+      <div class="nav-item">그래프</div>
+      <div class="nav-item">설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">[ 파일을 이곳에 드래그 ]</div>
+      <div class="doc-card">제품 가이드.pdf — <span class="tag">READY</span></div>
+      <div class="doc-card">API 문서.md — <span class="tag">PROC.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 19 -->
+<div class="card-wrap theme-holo">
+  <div class="label">19 · <span>Holographic</span> — 홀로그래픽</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">✦ ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">⬡ 파일을 드래그하세요</div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 20 -->
+<div class="card-wrap theme-sage">
+  <div class="label">20 · <span>Sage Botanical</span> — 세이지 보태니컬</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">🌿 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🌱 파일을 드래그하세요<br><small>지식을 차분하게 심어보세요</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 21 -->
+<div class="card-wrap theme-navy">
+  <div class="label">21 · <span>Midnight Navy</span> — 미드나이트 네이비 + 골드</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">⚓ MODOLRAG</div>
+      <div class="nav-item active">문서 관리</div>
+      <div class="nav-item">컬렉션</div>
+      <div class="nav-item">검색</div>
+      <div class="nav-item">그래프</div>
+      <div class="nav-item">설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">⬆ 파일을 드래그하세요</div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">READY</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">PROC.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 22 -->
+<div class="card-wrap theme-cotton">
+  <div class="label">22 · <span>Cotton Candy</span> — 솜사탕 파스텔</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">🍬 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🍭 파일을 드래그하세요<br><small>달콤하게 업로드됩니다</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 23 -->
+<div class="card-wrap theme-industrial">
+  <div class="label">23 · <span>Industrial</span> — 인더스트리얼 옐로우</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">⚙ MRAG</div>
+      <div class="nav-item active">DOCUMENTS</div>
+      <div class="nav-item">COLLECTIONS</div>
+      <div class="nav-item">SEARCH</div>
+      <div class="nav-item">GRAPH</div>
+      <div class="nav-item">CONFIG</div>
+    </div>
+    <div class="content">
+      <div class="page-title">DOCUMENTS</div>
+      <div class="upload-zone">⚠ DROP FILE TO INGEST</div>
+      <div class="doc-card">product_guide.pdf <span class="tag">OK</span></div>
+      <div class="doc-card">pricing.xlsx <span class="tag">RUN</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 24 -->
+<div class="card-wrap theme-sakura">
+  <div class="label">24 · <span>Sakura</span> — 벚꽃 일본풍</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">🌸 ModolRAG</div>
+      <div class="nav-item active">文書管理</div>
+      <div class="nav-item">コレクション</div>
+      <div class="nav-item">検索</div>
+      <div class="nav-item">グラフ</div>
+      <div class="nav-item">設定</div>
+    </div>
+    <div class="content">
+      <div class="page-title">文書管理</div>
+      <div class="upload-zone">🌸 ファイルをドロップ<br><small>桜のように美しく整理</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 25 -->
+<div class="card-wrap theme-carbon">
+  <div class="label">25 · <span>Carbon Fiber</span> — 카본 파이버 다크</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">◼ MODOLRAG</div>
+      <div class="nav-item active">문서 관리</div>
+      <div class="nav-item">컬렉션</div>
+      <div class="nav-item">검색</div>
+      <div class="nav-item">그래프</div>
+      <div class="nav-item">설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">↑ 파일 드래그</div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">READY</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">PROC.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 26 -->
+<div class="card-wrap theme-amber">
+  <div class="label">26 · <span>Vintage Amber</span> — 앰버 빈티지</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">◎ ModolRAG</div>
+      <div class="nav-item active">문서 관리</div>
+      <div class="nav-item">컬렉션</div>
+      <div class="nav-item">검색</div>
+      <div class="nav-item">그래프</div>
+      <div class="nav-item">설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">◈ 파일을 드래그하세요<br><small>오래된 지식을 현대적으로</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 27 -->
+<div class="card-wrap theme-matrix">
+  <div class="label">27 · <span>Matrix</span> — 매트릭스 레인</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">MODOLRAG</div>
+      <div class="nav-item active">DOCUMENTS</div>
+      <div class="nav-item">COLLECTIONS</div>
+      <div class="nav-item">SEARCH</div>
+      <div class="nav-item">GRAPH</div>
+      <div class="nav-item">SETTINGS</div>
+    </div>
+    <div class="content">
+      <div class="page-title">DOCUMENTS</div>
+      <div class="upload-zone">[ UPLOAD FILE ]</div>
+      <div class="doc-card">product.pdf <span class="tag">INDEXED</span></div>
+      <div class="doc-card">pricing.xlsx <span class="tag">RUNNING</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 28 -->
+<div class="card-wrap theme-denim">
+  <div class="label">28 · <span>Denim</span> — 데님 청바지 블루</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">〓 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">⬆ 파일 드래그 업로드<br><small>편안하고 믿음직하게</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 29 -->
+<div class="card-wrap theme-coral">
+  <div class="label">29 · <span>Coral Reef</span> — 코랄 리프</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">🐠 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🪸 파일을 드래그하세요<br><small>산호초처럼 다채로운 지식</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 30 -->
+<div class="card-wrap theme-lavender">
+  <div class="label">30 · <span>Lavender Fields</span> — 라벤더 필즈</div>
+  <div class="mockup">
+    <div class="sidebar">
+      <div class="logo">💜 ModolRAG</div>
+      <div class="nav-item active">📄 문서 관리</div>
+      <div class="nav-item">📚 컬렉션</div>
+      <div class="nav-item">🔍 검색</div>
+      <div class="nav-item">🕸️ 그래프</div>
+      <div class="nav-item">⚙️ 설정</div>
+    </div>
+    <div class="content">
+      <div class="page-title">문서 관리</div>
+      <div class="upload-zone">🌾 파일을 드래그하세요<br><small>라벤더향처럼 편안한 UI</small></div>
+      <div class="doc-card">제품 가이드.pdf <span class="tag">준비됨</span></div>
+      <div class="doc-card">가격표.xlsx <span class="tag">처리중</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<p style="text-align:center;margin-top:48px;color:#444;font-size:13px">
+  Vol.1 (1~10번): <a href="design-concepts.html" style="color:#666">design-concepts.html</a><br><br>
+  원하는 테마 번호를 말씀해주시면 즉시 적용합니다
+</p>
+</body>
+</html>
