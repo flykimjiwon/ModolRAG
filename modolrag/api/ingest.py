@@ -18,18 +18,20 @@ class IngestResponse(BaseModel):
 
 
 class DocumentResponse(BaseModel):
-    id: str
+    model_config = {"from_attributes": True}
+
+    id: str | object  # UUID from DB
     original_name: str
     mime_type: str
     category: str
     status: str
     chunk_count: int
     file_size: int | None = None
-    created_at: str | None = None
+    created_at: str | object | None = None  # datetime from DB
 
 
 class DocumentListResponse(BaseModel):
-    documents: list[DocumentResponse]
+    documents: list[dict]  # Raw dicts from DB — flexible schema
     count: int
 
 

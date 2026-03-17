@@ -2,7 +2,7 @@
 FROM node:20-slim AS dashboard-builder
 WORKDIR /dashboard
 COPY dashboard/package.json dashboard/package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 COPY dashboard/ .
 RUN npm run build
 # Output: /dashboard/../modolrag/static/ → /modolrag/static/

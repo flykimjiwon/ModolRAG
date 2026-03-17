@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS modolrag_document_chunks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     document_id UUID NOT NULL REFERENCES modolrag_documents(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    embedding halfvec(1536),
+    embedding halfvec(768),
     fts tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
     chunk_index INTEGER NOT NULL,
     chunk_level INTEGER DEFAULT 0,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS modolrag_graph_nodes (
     namespace TEXT DEFAULT 'default',
     title TEXT NOT NULL,
     content TEXT,
-    embedding halfvec(1536),
+    embedding halfvec(768),
     node_type TEXT DEFAULT 'concept' CHECK (node_type IN ('person','org','concept','location','event','document')),
     properties JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS modolrag_communities (
     summary TEXT,
     node_ids UUID[],
     level INTEGER DEFAULT 0,
-    embedding halfvec(1536),
+    embedding halfvec(768),
     needs_resummary BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now()
 );
