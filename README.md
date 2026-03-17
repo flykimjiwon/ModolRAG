@@ -26,58 +26,79 @@ modolrag serve --db postgresql://localhost:5439/modolrag
 ```
 아래 지침대로 ModolRAG를 설치하고 실행해줘. 순서대로 하나씩 진행해.
 
+## 중요: 각 단계마다 이미 설치/실행 중인지 먼저 확인하고, 되어있으면 "✅ 이미 완료" 출력 후 다음으로 넘어가.
+
 ## 1단계: 사전 요구사항 확인
 
-필요한 것:
-- macOS / Linux (Windows는 WSL2 사용)
-- Python 3.11+ (확인: python3 --version)
-- Docker Desktop (확인: docker --version)
-- Ollama (확인: ollama --version)
-- Git (확인: git --version)
+아래 명령어를 하나씩 실행하고, 성공하면 "✅ 설치됨" 출력 후 넘어가. 실패한 것만 설치해.
 
-없는 것이 있으면 먼저 설치해줘:
-- Python: brew install python@3.11
-- Docker: brew install --cask docker
-- Ollama: brew install ollama
-- Git: brew install git
-
-pip이 안 되면:
-  ln -sf $(which pip3.11 || which pip3) /opt/homebrew/bin/pip
-  ln -sf $(which python3.11 || which python3) /opt/homebrew/bin/python
+  # Python
+  python3 --version 2>/dev/null && echo "✅ Python 설치됨" || { echo "❌ 설치 필요"; brew install python@3.11; }
+  
+  # Docker
+  docker --version 2>/dev/null && echo "✅ Docker 설치됨" || { echo "❌ 설치 필요"; brew install --cask docker; }
+  
+  # Ollama
+  ollama --version 2>/dev/null && echo "✅ Ollama 설치됨" || { echo "❌ 설치 필요"; brew install ollama; }
+  
+  # Git
+  git --version 2>/dev/null && echo "✅ Git 설치됨" || { echo "❌ 설치 필요"; brew install git; }
+  
+  # pip
+  pip --version 2>/dev/null && echo "✅ pip 설치됨" || {
+    echo "❌ pip 심링크 생성";
+    ln -sf $(which pip3.11 2>/dev/null || which pip3) /opt/homebrew/bin/pip;
+    ln -sf $(which python3.11 2>/dev/null || which python3) /opt/homebrew/bin/python;
+  }
 
 ## 2단계: 프로젝트 클론 및 설치
 
-git clone https://github.com/modolai/ModolRAG.git
-cd ModolRAG
-pip install -e ".[dev]"
+  # 이미 클론되어 있는지 확인
+  if [ -d "ModolRAG" ] && [ -f "ModolRAG/pyproject.toml" ]; then
+    echo "✅ ModolRAG 프로젝트 이미 존재"
+    cd ModolRAG
+  else
+    echo "📥 클론 중..."
+    git clone https://github.com/modolai/ModolRAG.git
+    cd ModolRAG
+  fi
 
-설치 확인:
-  python -c "import modolrag; print(modolrag.__version__)"
-  # → 0.1.0 이 출력되어야 함
-  modolrag --help
-  # → serve, init-db, ingest 커맨드가 보여야 함
+  # 이미 설치되어 있는지 확인
+  python -c "import modolrag; print(f'✅ modolrag {modolrag.__version__} 이미 설치됨')" 2>/dev/null || {
+    echo "📦 설치 중..."
+    pip install -e ".[dev]"
+  }
+
+  # CLI 확인
+  modolrag --help > /dev/null 2>&1 && echo "✅ CLI 동작 확인" || echo "⚠️ CLI 등록 안 됨. pip install -e . 다시 실행"
 
 ## 3단계: Ollama 임베딩 모델 설치
 
-ollama serve &    # 이미 실행 중이면 생략
-ollama pull nomic-embed-text
+  # Ollama 실행 확인
+  curl -sf http://localhost:11434/api/tags > /dev/null 2>&1 && echo "✅ Ollama 실행 중" || {
+    echo "🦙 Ollama 시작 중..."
+    ollama serve &
+    sleep 3
+  }
 
-확인:
-  ollama list | grep nomic-embed-text
-  curl http://localhost:11434/api/tags
-  # → 모델 목록에 nomic-embed-text 있어야 함
+  # 모델 확인
+  ollama list 2>/dev/null | grep -q "nomic-embed-text" && echo "✅ nomic-embed-text 이미 설치됨" || {
+    echo "⬇️ 모델 다운로드 중..."
+    ollama pull nomic-embed-text
+  }
 
 ## 4단계: 원커맨드 실행
 
-chmod +x start.sh stop.sh
-./start.sh
-
-이 스크립트가 자동으로:
-1. Docker Desktop 실행 확인 (안 되면 자동 시작)
-2. Ollama 실행 확인 (안 되면 자동 시작)
-3. nomic-embed-text 모델 확인 (없으면 자동 다운로드)
-4. PostgreSQL + ModolRAG Docker 빌드 및 실행
-5. 헬스체크 통과될 때까지 대기
+  # 이미 서버가 돌고 있는지 확인
+  curl -sf http://localhost:8009/health > /dev/null 2>&1 && {
+    echo "✅ ModolRAG 이미 실행 중 (http://localhost:8009)"
+    echo "   Dashboard: http://localhost:8009/dashboard"
+    echo "   Swagger:   http://localhost:8009/docs"
+  } || {
+    echo "🚀 서버 시작..."
+    chmod +x start.sh stop.sh
+    ./start.sh
+  }
 
 성공하면 이렇게 출력됨:
   📊 Dashboard:    http://localhost:8009/dashboard
@@ -88,44 +109,52 @@ chmod +x start.sh stop.sh
 
 ## 5단계: 동작 확인
 
-# 헬스체크
-curl http://localhost:8009/health
-# → {"status":"ok","version":"0.1.0",...}
+  # 헬스체크
+  curl -sf http://localhost:8009/health > /dev/null && echo "✅ 서버 정상" || echo "❌ 서버 응답 없음"
 
-# 문서 업로드
-echo "ModolRAG는 PostgreSQL 기반 RAG 엔진입니다." > /tmp/test.txt
-curl -X POST http://localhost:8009/api/ingest -F "file=@/tmp/test.txt"
-# → {"document_id":"uuid","status":"processing","file_name":"test.txt"}
+  # 이미 문서가 있는지 확인
+  DOC_COUNT=$(curl -sf http://localhost:8009/api/documents 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('count',0))" 2>/dev/null || echo 0)
+  if [ "$DOC_COUNT" -gt 0 ] 2>/dev/null; then
+    echo "✅ 문서 ${DOC_COUNT}개 이미 등록됨 (업로드 스킵)"
+  else
+    echo "📄 테스트 문서 업로드..."
+    echo "ModolRAG는 PostgreSQL 기반 RAG 엔진입니다." > /tmp/test.txt
+    curl -X POST http://localhost:8009/api/ingest -F "file=@/tmp/test.txt"
+    echo ""
+    echo "⏳ 임베딩 처리 대기 (10초)..."
+    sleep 10
+  fi
 
-# 10초 대기 (임베딩 처리)
-sleep 10
+  # 검색 테스트
+  echo "🔍 검색 테스트..."
+  curl -sf -X POST http://localhost:8009/api/search \
+    -H "Content-Type: application/json" \
+    -d '{"query":"RAG","top_k":3,"mode":"hybrid"}' | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+print(f'✅ 검색 결과: {d[\"count\"]}개')
+" 2>/dev/null || echo "⚠️ 검색 실패"
 
-# 문서 상태 확인
-curl http://localhost:8009/api/documents
-# → status가 "vectorized"이면 성공
-
-# 검색 테스트
-curl -X POST http://localhost:8009/api/search \
-  -H "Content-Type: application/json" \
-  -d '{"query":"RAG 엔진","top_k":3,"mode":"hybrid"}'
-# → results에 업로드한 문서가 나와야 함
-
-# 컬렉션 생성
-curl -X POST http://localhost:8009/api/collections \
-  -H "Content-Type: application/json" \
-  -d '{"name":"테스트","description":"테스트 컬렉션"}'
-# → {"id":"uuid","name":"테스트",...}
+  # 컬렉션 확인
+  COLL_COUNT=$(curl -sf http://localhost:8009/api/collections 2>/dev/null | python3 -c "import sys,json;print(len(json.load(sys.stdin).get('collections',[])))" 2>/dev/null || echo 0)
+  if [ "$COLL_COUNT" -gt 0 ] 2>/dev/null; then
+    echo "✅ 컬렉션 ${COLL_COUNT}개 이미 존재 (생성 스킵)"
+  else
+    echo "📚 테스트 컬렉션 생성..."
+    curl -sf -X POST http://localhost:8009/api/collections \
+      -H "Content-Type: application/json" \
+      -d '{"name":"테스트","description":"테스트 컬렉션"}' > /dev/null && echo "✅ 컬렉션 생성됨"
+  fi
 
 ## 6단계: 테스트 실행
 
-cd ModolRAG
-bash tests/run_all.sh
-# → 45 pytest 통과 + 5 API 테스트 통과
+  bash tests/run_all.sh
+  # → 45 pytest 통과 + 5 API 테스트 통과
 
-## 7단계: 중지
+## 7단계: 중지 (필요할 때만)
 
-./stop.sh
-# 데이터는 Docker 볼륨에 보존됨. 재시작: ./start.sh
+  ./stop.sh
+  # 데이터는 Docker 볼륨에 보존됨. 재시작: ./start.sh
 
 ## 포트 구성
 - ModolRAG API + Dashboard: 8009
