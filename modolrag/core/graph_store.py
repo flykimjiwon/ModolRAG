@@ -1,5 +1,6 @@
 """Knowledge graph store with PostgreSQL recursive CTE traversal."""
 from __future__ import annotations
+import json
 import uuid
 from modolrag.db import fetch, fetchrow, execute
 
@@ -19,7 +20,7 @@ async def upsert_node(
     """Upsert a graph node. Returns node ID."""
     node_id = str(uuid.uuid4())
     embedding_str = _format_halfvec(embedding) if embedding else None
-    props_json = str(properties) if properties else "{}"
+    props_json = json.dumps(properties) if properties else "{}"
 
     row = await fetchrow(
         """
@@ -49,7 +50,7 @@ async def upsert_edge(
 ) -> str:
     """Upsert a graph edge. On conflict, increment weight. Returns edge ID."""
     edge_id = str(uuid.uuid4())
-    meta_json = str(metadata) if metadata else "{}"
+    meta_json = json.dumps(metadata) if metadata else "{}"
 
     row = await fetchrow(
         """

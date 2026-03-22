@@ -23,19 +23,24 @@ def rrf_fuse(
     ranked_lists: list[list[dict]],
     k: int = 60,
     id_key: str = "chunk_id",
+    weights: list[float] | None = None,
 ) -> list[dict]:
-    """Reciprocal Rank Fusion across multiple ranked result lists.
+    """Weighted Reciprocal Rank Fusion across multiple ranked result lists.
 
-    score = Σ 1/(k + rank_i) for each list where the item appears.
-    k=60 is the standard constant.
+    score = Σ weight_i * 1/(k + rank_i) for each list where the item appears.
+    k=60 is the standard constant (Cormack et al., SIGIR 2009).
     """
+    if weights is None:
+        weights = [1.0] * len(ranked_lists)
+
     scores: dict[str, float] = {}
     items: dict[str, dict] = {}
 
-    for ranked_list in ranked_lists:
+    for list_idx, ranked_list in enumerate(ranked_lists):
+        w = weights[list_idx] if list_idx < len(weights) else 1.0
         for rank, item in enumerate(ranked_list, start=1):
             item_id = item[id_key]
-            scores[item_id] = scores.get(item_id, 0.0) + 1.0 / (k + rank)
+            scores[item_id] = scores.get(item_id, 0.0) + w * 1.0 / (k + rank)
             if item_id not in items:
                 items[item_id] = item
 
@@ -71,6 +76,7 @@ async def hybrid_search(
         - "hybrid": All three fused with RRF
     """
     results_lists: list[list[dict]] = []
+    rrf_weights: list[float] = []
 
     # 1. Vector search
     if mode in ("vector", "hybrid"):
@@ -84,6 +90,7 @@ async def hybrid_search(
             r["match_type"] = "vector"
         if vector_results:
             results_lists.append(vector_results)
+            rrf_weights.append(vector_weight)
 
     if mode in ("fts", "hybrid"):
         fts_results = await search_fts(
@@ -95,6 +102,7 @@ async def hybrid_search(
             r["match_type"] = "fts"
         if fts_results:
             results_lists.append(fts_results)
+            rrf_weights.append(fts_weight)
 
     # 3. Graph-enhanced search
     if mode in ("graph", "hybrid"):
@@ -126,11 +134,13 @@ async def hybrid_search(
                         "file_name": "",
                         "original_name": "",
                         "metadata": {"node_type": node["node_type"], "depth": node["depth"]},
-                        # Apply depth decay: score * (0.8 ^ depth)
                         "graph_depth": node["depth"],
                     })
+            # Apply depth decay: sort by depth ascending so shallower nodes rank higher
+            graph_results.sort(key=lambda x: x["graph_depth"])
             if graph_results:
                 results_lists.append(graph_results)
+                rrf_weights.append(graph_weight)
 
     # Single mode — return directly without RRF
     if len(results_lists) == 1:
@@ -138,8 +148,8 @@ async def hybrid_search(
     elif len(results_lists) == 0:
         fused = []
     else:
-        # RRF fusion
-        fused = rrf_fuse(results_lists, k=60)[:top_k]
+        # Weighted RRF fusion
+        fused = rrf_fuse(results_lists, k=60, weights=rrf_weights)[:top_k]
 
     # Convert to SearchResult
     return [

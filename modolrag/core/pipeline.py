@@ -99,13 +99,17 @@ async def ingest_document(document_id: str, file_path: str, mime_type: str) -> N
             sample_text = " ".join(texts[:5])[:4000]
             extraction = await extract_entities_and_relations(sample_text)
 
-            # Build graph
+            # Build graph — embed entity names for graph search
             node_ids: dict[str, str] = {}
-            for entity in extraction.entities:
+            entity_texts = [e.name + (": " + e.description if e.description else "") for e in extraction.entities]
+            entity_embeddings = await embedder.embed_batch(entity_texts) if entity_texts else []
+
+            for i, entity in enumerate(extraction.entities):
                 node_id = await upsert_node(
                     namespace="default",
                     title=entity.name,
                     content=entity.description,
+                    embedding=entity_embeddings[i] if i < len(entity_embeddings) else None,
                     node_type=entity.type,
                 )
                 node_ids[entity.name] = node_id
