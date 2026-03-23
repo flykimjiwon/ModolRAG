@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModolRAG — 프로젝트 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface-2: #18181b;
+    --surface-3: #1e1e22;
+    --border: #27272a;
+    --border-light: #3f3f46;
+    --text: #fafafa;
+    --text-2: #a1a1aa;
+    --text-3: #71717a;
+    --blue: #3b82f6;
+    --blue-dim: #1e3a5f;
+    --green: #22c55e;
+    --green-dim: #14532d;
+    --amber: #f59e0b;
+    --amber-dim: #78350f;
+    --red: #ef4444;
+    --red-dim: #7f1d1d;
+    --purple: #a855f7;
+    --purple-dim: #581c87;
+    --cyan: #06b6d4;
+    --cyan-dim: #164e63;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .container { max-width: 1320px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Header */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    width: 44px; height: 44px; background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; color: white;
+  }
+  .header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .header h1 span { color: var(--text-3); font-weight: 400; font-size: 16px; margin-left: 8px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .badge-version { background: var(--blue-dim); color: var(--blue); }
+  .badge-date { background: var(--surface-2); color: var(--text-3); }
+
+  /* Summary Cards */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px;
+  }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .summary-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .summary-card.total::before { background: var(--blue); }
+  .summary-card.done::before { background: var(--green); }
+  .summary-card.progress::before { background: var(--amber); }
+  .summary-card.todo::before { background: var(--text-3); }
+  .summary-card.extra::before { background: var(--purple); }
+  .summary-number { font-size: 36px; font-weight: 800; letter-spacing: -1px; }
+  .summary-number.c-blue { color: var(--blue); }
+  .summary-number.c-green { color: var(--green); }
+  .summary-number.c-amber { color: var(--amber); }
+  .summary-number.c-gray { color: var(--text-3); }
+  .summary-number.c-purple { color: var(--purple); }
+  .summary-label { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+
+  /* Progress Bar */
+  .progress-section { margin-bottom: 32px; }
+  .progress-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+  }
+  .progress-title { font-size: 14px; font-weight: 600; color: var(--text-2); letter-spacing: 0.5px; }
+  .progress-pct { font-size: 28px; font-weight: 800; color: var(--green); }
+  .progress-bar {
+    height: 10px; background: var(--surface-2); border-radius: 8px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 8px; transition: width 0.6s ease;
+    background: linear-gradient(90deg, var(--green), #4ade80);
+  }
+
+  /* Wave Section */
+  .wave-section { margin-bottom: 28px; }
+  .wave-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .wave-icon {
+    width: 32px; height: 32px; border-radius: 10px; display: flex;
+    align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+  }
+  .wave-1 .wave-icon { background: var(--blue-dim); color: var(--blue); }
+  .wave-2 .wave-icon { background: var(--purple-dim); color: var(--purple); }
+  .wave-3 .wave-icon { background: var(--cyan-dim); color: var(--cyan); }
+  .wave-4 .wave-icon { background: var(--amber-dim); color: var(--amber); }
+  .wave-final .wave-icon { background: var(--green-dim); color: var(--green); }
+  .wave-extra .wave-icon { background: var(--purple-dim); color: var(--purple); }
+  .wave-name { font-size: 16px; font-weight: 700; }
+  .wave-count { font-size: 13px; color: var(--text-3); margin-left: auto; }
+
+  /* Task List */
+  .task-grid { display: flex; flex-direction: column; gap: 6px; }
+  .task-row {
+    display: grid; grid-template-columns: 36px 60px 1fr 140px 100px;
+    align-items: center; gap: 12px; padding: 10px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    transition: border-color 0.2s;
+  }
+  .task-row:hover { border-color: var(--border-light); }
+
+  .task-id { font-size: 12px; font-weight: 700; color: var(--text-3); font-family: 'SF Mono', monospace; }
+
+  .task-status {
+    padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    text-align: center; letter-spacing: 0.3px;
+  }
+  .status-done { background: var(--green-dim); color: var(--green); }
+  .status-new { background: var(--blue-dim); color: var(--blue); }
+  .status-wip { background: var(--amber-dim); color: var(--amber); }
+  .status-todo { background: var(--surface-3); color: var(--text-3); }
+  .status-verify { background: var(--purple-dim); color: var(--purple); }
+
+  .task-title { font-size: 14px; font-weight: 500; }
+  .task-title .sub { color: var(--text-3); font-weight: 400; font-size: 12px; margin-left: 6px; }
+
+  .task-category {
+    font-size: 11px; color: var(--text-3); text-align: right; font-family: 'SF Mono', monospace;
+  }
+
+  .task-wave-badge {
+    font-size: 11px; text-align: center; padding: 2px 8px; border-radius: 4px;
+  }
+
+  /* Tech Stack */
+  .stack-section { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--border); }
+  .stack-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .stack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stack-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px;
+  }
+  .stack-card h4 { font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; letter-spacing: 0.5px; }
+  .stack-card ul { list-style: none; }
+  .stack-card li {
+    font-size: 13px; color: var(--text); padding: 3px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stack-card li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .stack-card.backend li::before { background: var(--blue); }
+  .stack-card.database li::before { background: var(--green); }
+  .stack-card.frontend li::before { background: var(--amber); }
+  .stack-card.infra li::before { background: var(--purple); }
+
+  /* Endpoints */
+  .endpoints-section { margin-top: 32px; }
+  .endpoints-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .endpoint-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  }
+  .endpoint-card h4 { font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 10px; letter-spacing: 0.5px; }
+  .endpoint-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+  .method {
+    font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    font-family: 'SF Mono', monospace; min-width: 42px; text-align: center;
+  }
+  .method-get { background: var(--green-dim); color: var(--green); }
+  .method-post { background: var(--blue-dim); color: var(--blue); }
+  .method-put { background: var(--amber-dim); color: var(--amber); }
+  .method-delete { background: var(--red-dim); color: var(--red); }
+  .endpoint-path { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--text); }
+  .endpoint-desc { color: var(--text-3); font-size: 12px; margin-left: auto; }
+
+  /* Commit Log */
+  .commits-section { margin-top: 32px; }
+  .commit-list { display: flex; flex-direction: column; gap: 4px; }
+  .commit-row {
+    display: grid; grid-template-columns: 80px 1fr; gap: 12px;
+    padding: 8px 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px;
+  }
+  .commit-hash { font-family: 'SF Mono', monospace; color: var(--blue); font-size: 12px; }
+  .commit-msg { color: var(--text-2); }
+
+  /* Architecture */
+  .arch-section { margin-top: 32px; }
+  .arch-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; font-family: 'SF Mono', monospace; font-size: 13px;
+    line-height: 1.7; color: var(--text-2); white-space: pre; overflow-x: auto;
+  }
+  .arch-box .hl-blue { color: var(--blue); }
+  .arch-box .hl-green { color: var(--green); }
+  .arch-box .hl-amber { color: var(--amber); }
+  .arch-box .hl-purple { color: var(--purple); }
+
+  /* Section Header */
+  .section-header {
+    font-size: 16px; font-weight: 700; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Description Block */
+  .desc-block {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 24px 28px; margin-bottom: 32px; line-height: 1.9; color: var(--text-2); font-size: 14px;
+  }
+  .desc-block h3 { color: var(--text); font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .desc-block p { margin-bottom: 10px; }
+  .desc-block strong { color: var(--text); }
+  .desc-block .highlight { color: var(--blue); font-weight: 600; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
+    text-align: center; color: var(--text-3); font-size: 12px;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary-grid { grid-template-columns: repeat(3, 1fr); }
+    .stack-grid { grid-template-columns: repeat(2, 1fr); }
+    .endpoints-grid { grid-template-columns: 1fr; }
+    .task-row { grid-template-columns: 36px 60px 1fr 100px; }
+    .task-category { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">M</div>
+      <h1>ModolRAG <span>프로젝트 대시보드</span></h1>
+    </div>
+    <div class="header-right">
+      <span class="badge badge-version">v0.1.0</span>
+      <span class="badge badge-date">업데이트: 2026-03-23</span>
+    </div>
+  </div>
+
+  <!-- 프로젝트 설명 -->
+  <div class="desc-block">
+    <h3>ModolRAG이란?</h3>
+    <p>
+      ModolRAG는 <strong>PostgreSQL 하나로 벡터 검색 + 전문 검색 + 지식 그래프</strong>를 모두 처리하는 하이브리드 RAG(Retrieval-Augmented Generation) 엔진입니다.
+      Elasticsearch, Pinecone, Neo4j 같은 별도 서비스 없이 <span class="highlight">하나의 데이터베이스</span>에서 모든 검색 기능이 동작합니다.
+    </p>
+    <p>
+      <strong>pip install modolrag</strong> 한 줄이면 설치 완료. 문서를 업로드하면 자동으로 파싱 &rarr; 청킹 &rarr; 임베딩 &rarr; 저장 &rarr; 그래프 구축까지 처리하고,
+      <span class="highlight">RRF(Reciprocal Rank Fusion)</span> 알고리즘으로 3가지 검색 결과를 융합하여 최고 품질의 검색 결과를 반환합니다.
+    </p>
+    <p>
+      React 대시보드로 비개발자도 문서 관리, 검색 테스트, 지식 그래프 시각화를 할 수 있으며,
+      <strong>App Builder</strong>로 코드 없이 커스텀 LLM 챗봇 엔드포인트를 만들 수 있습니다.
+    </p>
+  </div>
+
+  <!-- 요약 카드 -->
+  <div class="summary-grid">
+    <div class="summary-card total">
+      <div class="summary-number c-blue">26</div>
+      <div class="summary-label">전체 태스크 (T1-T22 + F1-F4)</div>
+    </div>
+    <div class="summary-card done">
+      <div class="summary-number c-green">26</div>
+      <div class="summary-label">완료</div>
+    </div>
+    <div class="summary-card extra">
+      <div class="summary-number c-purple">+4</div>
+      <div class="summary-label">추가 기능 (계획 외)</div>
+    </div>
+    <div class="summary-card progress">
+      <div class="summary-number c-amber">18</div>
+      <div class="summary-label">Git 커밋</div>
+    </div>
+    <div class="summary-card todo">
+      <div class="summary-number c-gray">0</div>
+      <div class="summary-label">남은 작업</div>
+    </div>
+  </div>
+
+  <!-- 전체 진행률 -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="progress-title">전체 진행률</span>
+      <span class="progress-pct">100%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100%"></div>
+    </div>
+  </div>
+
+  <!-- Wave 1: 기반 구축 -->
+  <div class="wave-section wave-1">
+    <div class="wave-header">
+      <div class="wave-icon">W1</div>
+      <span class="wave-name">기반 구축</span>
+      <span class="wave-count">5/5 완료</span>
+    </div>
+    <div class="task-grid">
+      <div class="task-row">
+        <span class="task-id">T1</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">프로젝트 스캐폴딩 + pyproject.toml<span class="sub">패키지 구조, Makefile, 라이선스</span></span>
+        <span class="task-category">quick</span>
+        <span class="task-wave-badge">chore</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T2</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">프로젝트 문서 (README, 아키텍처, 스키마)<span class="sub">844줄 README</span></span>
+        <span class="task-category">writing</span>
+        <span class="task-wave-badge">docs</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T3</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">DB 스키마 + 커넥션 모듈<span class="sub">9개 테이블, pgvector + ltree + pg_trgm</span></span>
+        <span class="task-category">quick</span>
+        <span class="task-wave-badge">feat(db)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T4</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">설정 관리 + API Key 인증 미들웨어<span class="sub">pydantic-settings, X-API-Key</span></span>
+        <span class="task-category">quick</span>
+        <span class="task-wave-badge">feat(auth)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T5</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">임베딩 어댑터 (Ollama + OpenAI)<span class="sub">+ 로컬 (sentence-transformers)</span></span>
+        <span class="task-category">quick</span>
+        <span class="task-wave-badge">feat(embed)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wave 2: 핵심 모듈 -->
+  <div class="wave-section wave-2">
+    <div class="wave-header">
+      <div class="wave-icon">W2</div>
+      <span class="wave-name">핵심 모듈</span>
+      <span class="wave-count">6/6 완료</span>
+    </div>
+    <div class="task-grid">
+      <div class="task-row">
+        <span class="task-id">T6</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">문서 파서 6종<span class="sub">PDF, DOCX, XLSX, PPTX, MD, TXT</span></span>
+        <span class="task-category">unspecified-high</span>
+        <span class="task-wave-badge">feat(parsers)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T7</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">청킹 엔진<span class="sub">Recursive, Semantic, Page 전략</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">feat(chunker)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T8</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">벡터 스토어 (pgvector + HNSW)<span class="sub">halfvec, 코사인 유사도, CRUD</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">feat(vector)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T9</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">전문 검색 (tsvector + GIN)<span class="sub">websearch_to_tsquery, ts_rank_cd</span></span>
+        <span class="task-category">unspecified-high</span>
+        <span class="task-wave-badge">feat(fts)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T10</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">그래프 스토어 (노드/엣지 + CTE 탐색)<span class="sub">2홉 BFS, 사이클 방지</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">feat(graph)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T11</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">LLM 엔티티/관계 추출기<span class="sub">JSON 트리플, 위키링크 감지</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">feat(extract)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wave 3: 통합 -->
+  <div class="wave-section wave-3">
+    <div class="wave-header">
+      <div class="wave-icon">W3</div>
+      <span class="wave-name">통합</span>
+      <span class="wave-count">5/5 완료</span>
+    </div>
+    <div class="task-grid">
+      <div class="task-row">
+        <span class="task-id">T12</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">하이브리드 검색 + RRF 융합<span class="sub">벡터 + FTS + 그래프, 가중 RRF k=60</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">feat(search)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T13</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">FastAPI 라우터 통합<span class="sub">7개 라우터, 19+ 엔드포인트, OpenAPI</span></span>
+        <span class="task-category">unspecified-high</span>
+        <span class="task-wave-badge">feat(api)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T14</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">수집 파이프라인 (E2E)<span class="sub">파싱 &rarr; 청킹 &rarr; 임베딩 &rarr; 저장 &rarr; 그래프</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">feat(pipeline)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T15</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">CLI 엔트리포인트<span class="sub">serve, init-db, ingest, search, ask, quickstart, status</span></span>
+        <span class="task-category">quick</span>
+        <span class="task-wave-badge">feat(cli)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T16</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">Docker Compose + Makefile<span class="sub">멀티스테이지 Dockerfile, start.sh, stop.sh</span></span>
+        <span class="task-category">quick</span>
+        <span class="task-wave-badge">feat(docker)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wave 4: 대시보드 + 마무리 -->
+  <div class="wave-section wave-4">
+    <div class="wave-header">
+      <div class="wave-icon">W4</div>
+      <span class="wave-name">대시보드 + 마무리</span>
+      <span class="wave-count">6/6 완료</span>
+    </div>
+    <div class="task-grid">
+      <div class="task-row">
+        <span class="task-id">T17</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">대시보드 스캐폴딩<span class="sub">Vite + React 19 + Tailwind CSS 4</span></span>
+        <span class="task-category">visual</span>
+        <span class="task-wave-badge">feat(dashboard)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T18</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">문서 관리 페이지<span class="sub">드래그앤드롭 업로드, 상태 배지, 자동 새로고침</span></span>
+        <span class="task-category">visual</span>
+        <span class="task-wave-badge">feat(dashboard)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T19</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">검색 페이지<span class="sub">모드 토글, 컬렉션 필터, Top-K 슬라이더</span></span>
+        <span class="task-category">visual</span>
+        <span class="task-wave-badge">feat(dashboard)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T20</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">그래프 페이지<span class="sub">react-force-graph-2d, 노드 상세 패널, 범례</span></span>
+        <span class="task-category">visual</span>
+        <span class="task-wave-badge">feat(dashboard)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T21</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">설정 페이지 + 빌드 &rarr; static/<span class="sub">API 키, 청크 설정, 모델 선택</span></span>
+        <span class="task-category">visual</span>
+        <span class="task-wave-badge">feat(dashboard)</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">T22</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">ModolAI 연동 가이드<span class="sub">docs/MODOLAI_INTEGRATION.md</span></span>
+        <span class="task-category">writing</span>
+        <span class="task-wave-badge">docs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 최종 검증 -->
+  <div class="wave-section wave-final">
+    <div class="wave-header">
+      <div class="wave-icon">FN</div>
+      <span class="wave-name">최종 검증</span>
+      <span class="wave-count">4/4 완료</span>
+    </div>
+    <div class="task-grid">
+      <div class="task-row">
+        <span class="task-id">F1</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">계획 준수 감사<span class="sub">모든 산출물 검증 완료</span></span>
+        <span class="task-category">oracle</span>
+        <span class="task-wave-badge">검증</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">F2</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">코드 품질 리뷰<span class="sub">ruff check + format, 이슈 없음</span></span>
+        <span class="task-category">review</span>
+        <span class="task-wave-badge">검증</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">F3</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">E2E QA (pytest + API 테스트)<span class="sub">pytest 45개 + API 테스트 5개 통과</span></span>
+        <span class="task-category">qa</span>
+        <span class="task-wave-badge">검증</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">F4</span>
+        <span class="task-status status-done">완료</span>
+        <span class="task-title">스코프 충실도 검증<span class="sub">LangChain 없음, AGPL 없음, MIT 전용 의존성</span></span>
+        <span class="task-category">deep</span>
+        <span class="task-wave-badge">검증</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 추가 기능: 계획 외 -->
+  <div class="wave-section wave-extra">
+    <div class="wave-header">
+      <div class="wave-icon">+</div>
+      <span class="wave-name">추가 기능 (계획 외 보너스)</span>
+      <span class="wave-count">4개 기능 출시</span>
+    </div>
+    <div class="task-grid">
+      <div class="task-row">
+        <span class="task-id">B1</span>
+        <span class="task-status status-new">추가</span>
+        <span class="task-title">앱 빌더<span class="sub">커스텀 LLM 엔드포인트, CRUD + 스트리밍 채팅</span></span>
+        <span class="task-category">api/apps.py</span>
+        <span class="task-wave-badge">feat</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">B2</span>
+        <span class="task-status status-new">추가</span>
+        <span class="task-title">RAG 답변 생성 (스트리밍 SSE)<span class="sub">POST /api/generate, Server-Sent Events</span></span>
+        <span class="task-category">api/generate.py</span>
+        <span class="task-wave-badge">feat</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">B3</span>
+        <span class="task-status status-new">추가</span>
+        <span class="task-title">HyDE (가상 문서 임베딩)<span class="sub">LLM으로 쿼리 변환하여 검색 품질 향상</span></span>
+        <span class="task-category">core/hyde.py</span>
+        <span class="task-wave-badge">feat</span>
+      </div>
+      <div class="task-row">
+        <span class="task-id">B4</span>
+        <span class="task-status status-new">추가</span>
+        <span class="task-title">3줄 Python API 파사드<span class="sub">ModolRAG 클래스: 동기 + 비동기, 자동 초기화</span></span>
+        <span class="task-category">__init__.py</span>
+        <span class="task-wave-badge">feat</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 아키텍처 다이어그램 -->
+  <div class="arch-section">
+    <div class="section-header"><div class="dot" style="background:var(--blue)"></div> 아키텍처</div>
+    <div class="arch-box"><span class="hl-blue">문서</span>  &rarr;  <span class="hl-green">파서</span>  &rarr;  <span class="hl-amber">청커</span>  &rarr;  <span class="hl-purple">임베더</span>  &rarr;  <span class="hl-green">PostgreSQL</span>
+(6종)     (pypdf,    (재귀적,     (Ollama/     &#9500;&#9472; pgvector (HNSW 인덱스)
+           docx,      시멘틱,      OpenAI/      &#9500;&#9472; tsvector (GIN 인덱스)
+           xlsx...)   페이지)      로컬)        &#9492;&#9472; 그래프 CTE (2홉 탐색)
+                                                      &#9474;
+           <span class="hl-blue">쿼리</span> &rarr; <span class="hl-purple">임베딩</span> &rarr; [<span class="hl-green">벡터</span>+<span class="hl-amber">전문검색</span>+<span class="hl-purple">그래프</span>] &rarr; <span class="hl-blue">RRF 융합</span> &rarr; 결과
+
+<span class="hl-blue">REST API</span> (19+ 엔드포인트)  |  <span class="hl-amber">대시보드</span> (React SPA)  |  <span class="hl-green">CLI</span> (7개 명령어)</div>
+  </div>
+
+  <!-- API 엔드포인트 -->
+  <div class="endpoints-section">
+    <div class="section-header"><div class="dot" style="background:var(--green)"></div> API 엔드포인트 (19+)</div>
+    <div class="endpoints-grid">
+      <div class="endpoint-card">
+        <h4>문서 & 수집</h4>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/ingest</span><span class="endpoint-desc">파일 업로드</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/documents</span><span class="endpoint-desc">문서 목록</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/documents/{id}</span><span class="endpoint-desc">문서 상세</span></div>
+        <div class="endpoint-row"><span class="method method-delete">DEL</span><span class="endpoint-path">/api/documents/{id}</span><span class="endpoint-desc">문서 삭제</span></div>
+      </div>
+      <div class="endpoint-card">
+        <h4>검색 & 생성</h4>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/search</span><span class="endpoint-desc">하이브리드 검색</span></div>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/generate</span><span class="endpoint-desc">RAG 답변 (SSE)</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/graph</span><span class="endpoint-desc">전체 노드/엣지</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/graph/node/{id}</span><span class="endpoint-desc">노드 상세</span></div>
+      </div>
+      <div class="endpoint-card">
+        <h4>컬렉션</h4>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/collections</span><span class="endpoint-desc">생성</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/collections</span><span class="endpoint-desc">목록</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/collections/{id}</span><span class="endpoint-desc">상세</span></div>
+        <div class="endpoint-row"><span class="method method-delete">DEL</span><span class="endpoint-path">/api/collections/{id}</span><span class="endpoint-desc">삭제</span></div>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/collections/{id}/documents</span><span class="endpoint-desc">문서 추가</span></div>
+        <div class="endpoint-row"><span class="method method-delete">DEL</span><span class="endpoint-path">/api/collections/{id}/documents</span><span class="endpoint-desc">문서 제거</span></div>
+      </div>
+      <div class="endpoint-card">
+        <h4>앱 & 관리</h4>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/apps</span><span class="endpoint-desc">앱 생성</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/apps</span><span class="endpoint-desc">앱 목록</span></div>
+        <div class="endpoint-row"><span class="method method-put">PUT</span><span class="endpoint-path">/api/apps/{id}</span><span class="endpoint-desc">앱 수정</span></div>
+        <div class="endpoint-row"><span class="method method-post">POST</span><span class="endpoint-path">/api/apps/{id}/chat</span><span class="endpoint-desc">채팅 (SSE)</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/health</span><span class="endpoint-desc">헬스체크</span></div>
+        <div class="endpoint-row"><span class="method method-get">GET</span><span class="endpoint-path">/api/settings</span><span class="endpoint-desc">설정 조회</span></div>
+        <div class="endpoint-row"><span class="method method-put">PUT</span><span class="endpoint-path">/api/settings</span><span class="endpoint-desc">설정 수정</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기술 스택 -->
+  <div class="stack-section">
+    <div class="section-header"><div class="dot" style="background:var(--purple)"></div> 기술 스택</div>
+    <div class="stack-grid">
+      <div class="stack-card backend">
+        <h4>백엔드</h4>
+        <ul>
+          <li>Python 3.11+</li>
+          <li>FastAPI 0.110+</li>
+          <li>Uvicorn (ASGI 서버)</li>
+          <li>asyncpg (DB 드라이버)</li>
+          <li>httpx (HTTP 클라이언트)</li>
+          <li>pydantic-settings (설정)</li>
+        </ul>
+      </div>
+      <div class="stack-card database">
+        <h4>데이터베이스</h4>
+        <ul>
+          <li>PostgreSQL 15</li>
+          <li>pgvector (HNSW, halfvec)</li>
+          <li>tsvector + GIN 인덱스</li>
+          <li>Recursive CTE (그래프)</li>
+          <li>pg_trgm + ltree</li>
+        </ul>
+      </div>
+      <div class="stack-card frontend">
+        <h4>프론트엔드</h4>
+        <ul>
+          <li>React 19 + TypeScript</li>
+          <li>Vite 8 (빌드 도구)</li>
+          <li>Tailwind CSS 4</li>
+          <li>react-force-graph-2d</li>
+          <li>lucide-react (아이콘)</li>
+          <li>다국어 지원 (한/영)</li>
+        </ul>
+      </div>
+      <div class="stack-card infra">
+        <h4>인프라</h4>
+        <ul>
+          <li>Docker + Compose</li>
+          <li>멀티스테이지 Dockerfile</li>
+          <li>Ollama (로컬 임베딩)</li>
+          <li>OpenAI API (클라우드)</li>
+          <li>MIT 라이선스</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 최근 커밋 -->
+  <div class="commits-section">
+    <div class="section-header"><div class="dot" style="background:var(--amber)"></div> 최근 커밋 이력</div>
+    <div class="commit-list">
+      <div class="commit-row"><span class="commit-hash">8f92a29</span><span class="commit-msg">3줄 API 파사드, CLI 확장, 로컬 임베더, 버그 수정</span></div>
+      <div class="commit-row"><span class="commit-hash">e7fd7d9</span><span class="commit-msg">프론트엔드 아키텍처 결정 문서 &mdash; React SPA + shadcn/ui (Next.js 대신)</span></div>
+      <div class="commit-row"><span class="commit-hash">497e868</span><span class="commit-msg">대시보드 리디자인 (SaaS 라이트 + DevTools 다크) + LLM 생성, HyDE, 앱 빌더 추가</span></div>
+      <div class="commit-row"><span class="commit-hash">95250f2</span><span class="commit-msg">AI 가이드 &mdash; 각 단계 완료 여부 확인 로직 추가</span></div>
+      <div class="commit-row"><span class="commit-hash">8a7e720</span><span class="commit-msg">AI 셋업 가이드 &mdash; ChatGPT/Claude/Cursor에 복사-붙여넣기 가능한 설치 지침</span></div>
+      <div class="commit-row"><span class="commit-hash">c60570a</span><span class="commit-msg">테스트 스위트 추가 &mdash; pytest 45개 + API 테스트 5개 + 린트 체크</span></div>
+      <div class="commit-row"><span class="commit-hash">390c2ce</span><span class="commit-msg">다크 모드 수정 (Tailwind v4 @variant dark), 툴팁 컴포넌트</span></div>
+      <div class="commit-row"><span class="commit-hash">584a16b</span><span class="commit-msg">대시보드 UI &mdash; 둥근 카드, 드래그앤드롭 업로드, 필 버튼, 부드러운 그림자</span></div>
+      <div class="commit-row"><span class="commit-hash">f1fa221</span><span class="commit-msg">stop.sh 추가 &mdash; 원커맨드 서비스 중지</span></div>
+      <div class="commit-row"><span class="commit-hash">12256be</span><span class="commit-msg">대시보드 한영 전환 (i18n) + 다크 모드 + Pretendard 폰트 + 리디자인</span></div>
+      <div class="commit-row"><span class="commit-hash">07021de</span><span class="commit-msg">README 전면 재작성 &mdash; 620줄, 비개발자 가이드, 전체 API 레퍼런스</span></div>
+      <div class="commit-row"><span class="commit-hash">906366e</span><span class="commit-msg">문서 컬렉션 (범위 검색) + ModolAI 스킬 설정</span></div>
+      <div class="commit-row"><span class="commit-hash">7889110</span><span class="commit-msg">스키마 차원 1536&rarr;768 수정, Dockerfile npm 호환성, UUID 호환</span></div>
+      <div class="commit-row"><span class="commit-hash">8a4f72d</span><span class="commit-msg">원커맨드 배포 (start.sh) + 포트 설정 + 문서 업데이트</span></div>
+      <div class="commit-row"><span class="commit-hash">b0024e3</span><span class="commit-msg">OpenAPI/Swagger 강화 &mdash; 응답 모델, 예제, 태그 설명</span></div>
+      <div class="commit-row"><span class="commit-hash">61acb2c</span><span class="commit-msg">ModolRAG v0.1.0 완성 &mdash; 하이브리드 RAG 엔진 (백엔드 + 대시보드 + 문서)</span></div>
+      <div class="commit-row"><span class="commit-hash">4ba3db8</span><span class="commit-msg">ModolRAG 프로젝트 구조 스캐폴딩</span></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    ModolRAG &copy; 2026 &mdash; PostgreSQL 기반 하이브리드 RAG 엔진 &mdash; MIT 라이선스
+  </div>
+
+</div>
+
+</body>
+</html>
