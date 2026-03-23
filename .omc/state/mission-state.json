@@ -1,0 +1,79 @@
+{
+  "updatedAt": "2026-03-22T13:39:58.813Z",
+  "missions": [
+    {
+      "id": "session:aba4a568-62a5-414d-b2c6-8368ff2ade59:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-03-22T13:31:43.780Z",
+      "updatedAt": "2026-03-22T13:39:58.813Z",
+      "status": "done",
+      "workerCount": 2,
+      "taskCounts": {
+        "total": 2,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 2,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "verifier:ab0262d",
+          "role": "verifier",
+          "ownership": "ab0262dae111890f7",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-03-22T13:33:21.062Z"
+        },
+        {
+          "name": "architect:ae32caa",
+          "role": "architect",
+          "ownership": "ae32caa6de0e3a469",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-03-22T13:39:58.813Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:ab0262dae111890f7:2026-03-22T13:31:43.780Z",
+          "at": "2026-03-22T13:31:43.780Z",
+          "kind": "update",
+          "agent": "verifier:ab0262d",
+          "detail": "started verifier:ab0262d",
+          "sourceKey": "session-start:ab0262dae111890f7"
+        },
+        {
+          "id": "session-stop:ab0262dae111890f7:2026-03-22T13:33:21.062Z",
+          "at": "2026-03-22T13:33:21.062Z",
+          "kind": "completion",
+          "agent": "verifier:ab0262d",
+          "detail": "completed",
+          "sourceKey": "session-stop:ab0262dae111890f7"
+        },
+        {
+          "id": "session-start:ae32caa6de0e3a469:2026-03-22T13:37:38.642Z",
+          "at": "2026-03-22T13:37:38.642Z",
+          "kind": "update",
+          "agent": "architect:ae32caa",
+          "detail": "started architect:ae32caa",
+          "sourceKey": "session-start:ae32caa6de0e3a469"
+        },
+        {
+          "id": "session-stop:ae32caa6de0e3a469:2026-03-22T13:39:58.813Z",
+          "at": "2026-03-22T13:39:58.813Z",
+          "kind": "completion",
+          "agent": "architect:ae32caa",
+          "detail": "completed",
+          "sourceKey": "session-stop:ae32caa6de0e3a469"
+        }
+      ]
+    }
+  ]
+}
