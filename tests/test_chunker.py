@@ -68,6 +68,15 @@ class TestChunkDataclass:
         assert c.parent_index is None
         assert c.metadata == {}
 
+    def test_to_dict(self):
+        c = Chunk(content="hello", chunk_index=2, chunk_level=1, metadata={"page": 1})
+        d = c.to_dict()
+        assert d["content"] == "hello"
+        assert d["chunk_index"] == 2
+        assert d["chunk_level"] == 1
+        assert d["metadata"] == {"page": 1}
+        assert d["parent_index"] is None
+
 
 class TestRecursiveChunkerValidation:
     def test_zero_chunk_size_raises(self):

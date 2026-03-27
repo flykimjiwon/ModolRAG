@@ -24,6 +24,16 @@ class Chunk:
         """Return length of content."""
         return len(self.content)
 
+    def to_dict(self) -> dict:
+        """Serialize to dictionary."""
+        return {
+            "content": self.content,
+            "chunk_index": self.chunk_index,
+            "chunk_level": self.chunk_level,
+            "parent_index": self.parent_index,
+            "metadata": self.metadata,
+        }
+
 
 class ChunkerBase(ABC):
     @abstractmethod
