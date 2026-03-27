@@ -187,6 +187,23 @@ class TestSearchResult:
         assert r.original_name == ""
 
 
+class TestRRFImmutability:
+    def test_input_not_mutated(self):
+        """rrf_fuse should not mutate the input lists."""
+        items = [{"chunk_id": "a", "content": "x"}, {"chunk_id": "b", "content": "y"}]
+        import copy
+        original = copy.deepcopy(items)
+        rrf_fuse([items])
+        assert items == original, "Input list was mutated by rrf_fuse"
+
+    def test_result_is_independent_copy(self):
+        """Modifying result should not affect source data."""
+        items = [{"chunk_id": "a", "val": 1}]
+        result = rrf_fuse([items])
+        result[0]["val"] = 999
+        assert items[0]["val"] == 1
+
+
 class TestHybridSearchValidation:
     @pytest.mark.asyncio
     async def test_invalid_mode_raises(self):
