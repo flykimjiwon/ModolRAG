@@ -120,3 +120,29 @@ class TestDataClasses:
         )
         assert len(er.entities) == 1
         assert len(er.relationships) == 1
+
+    def test_entity_equality(self):
+        e1 = Entity(name="Python", type="concept", description="A language")
+        e2 = Entity(name="Python", type="concept", description="A language")
+        assert e1 == e2
+
+    def test_entity_inequality(self):
+        e1 = Entity(name="Python", type="concept")
+        e2 = Entity(name="Java", type="concept")
+        assert e1 != e2
+
+    def test_relationship_default_confidence(self):
+        r = Relationship(subject="A", predicate="rel", object="B")
+        assert r.confidence == 1.0
+
+    def test_extraction_result_empty(self):
+        er = ExtractionResult()
+        assert er.entities == []
+        assert er.relationships == []
+
+    def test_extraction_result_append(self):
+        er = ExtractionResult()
+        er.entities.append(Entity(name="X", type="concept"))
+        er.relationships.append(Relationship(subject="X", predicate="rel", object="Y"))
+        assert len(er.entities) == 1
+        assert len(er.relationships) == 1
