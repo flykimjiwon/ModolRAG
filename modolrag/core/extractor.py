@@ -57,11 +57,16 @@ def extract_wikilinks(text: str) -> list[Relationship]:
         return []
     pattern = r'\[\[([^\]]+)\]\]'
     raw_matches = re.findall(pattern, text)
-    # Filter out empty/whitespace-only links and strip
-    matches = [m.strip() for m in raw_matches if m.strip()]
+    # Filter out empty/whitespace-only links and deduplicate while preserving order
+    seen_links: list[str] = []
+    for m in raw_matches:
+        stripped = m.strip()
+        if stripped and stripped not in seen_links:
+            seen_links.append(stripped)
+
     relationships = []
-    for i, match in enumerate(matches):
-        for j, other in enumerate(matches):
+    for i, match in enumerate(seen_links):
+        for j, other in enumerate(seen_links):
             if i != j:
                 relationships.append(Relationship(
                     subject=match,

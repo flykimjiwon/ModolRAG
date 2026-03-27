@@ -51,6 +51,15 @@ class TestWikilinksEdgeCases:
         rels = extract_wikilinks(text)
         assert len(rels) == 5 * 4  # permutations
 
+    def test_duplicate_links_deduplicated(self):
+        """Repeated [[A]] should not produce self-referencing or duplicate relationships."""
+        rels = extract_wikilinks("[[A]] then [[A]] then [[B]]")
+        # Only unique links: A, B → 2 relationships (A→B, B→A)
+        assert len(rels) == 2
+        pairs = {(r.subject, r.object) for r in rels}
+        assert ("A", "B") in pairs
+        assert ("B", "A") in pairs
+
     def test_whitespace_only_links_filtered(self):
         """[[ ]] should be ignored."""
         rels = extract_wikilinks("[[  ]] and [[A]] and [[B]]")
