@@ -75,6 +75,16 @@ class TestMarkdownFrontmatter:
         assert fm == {}
         assert "Body text" in body
 
+    def test_metadata_contains_frontmatter(self):
+        md = "---\ntitle: Hello\ntags: test\n---\n\nContent here."
+        path = _write_tmp(md, ".md")
+        p = get_parser("text/markdown")
+        result = p.parse(path)
+        assert "frontmatter" in result.metadata
+        fm = result.metadata["frontmatter"]
+        assert fm.get("title") == "Hello"
+        os.unlink(path)
+
     def test_markdown_h2_split(self):
         md = "# Title\n\nIntro.\n\n## Section A\n\nContent A.\n\n## Section B\n\nContent B."
         path = _write_tmp(md, ".md")
@@ -82,6 +92,24 @@ class TestMarkdownFrontmatter:
         result = p.parse(path)
         assert len(result.pages) >= 2
         os.unlink(path)
+
+
+class TestMarkdownEncodingFallback:
+    def test_latin1_file(self):
+        """Markdown parser should fall back to latin-1 for non-UTF8 files."""
+        f = tempfile.NamedTemporaryFile(mode='wb', suffix=".md", delete=False)
+        # \xe9 is é in latin-1 but invalid continuation byte in UTF-8
+        f.write(b"# H\xe9llo\n\nCaf\xe9 content.")
+        f.close()
+        p = get_parser("text/markdown")
+        result = p.parse(f.name)
+        assert "content" in result.text.lower()
+        os.unlink(f.name)
+
+    def test_nonexistent_file(self):
+        p = get_parser("text/markdown")
+        result = p.parse("/tmp/nonexistent_modolrag_test_file.md")
+        assert "error" in result.metadata
 
 
 class TestParserFactory:
