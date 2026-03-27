@@ -139,6 +139,16 @@ class TestRecursiveChunkerEdgeCases:
         text = "   \n\n   \n   "
         assert c.chunk(text) == []
 
+    def test_separator_priority(self):
+        """Should prefer paragraph (\n\n) split over sentence (. ) split."""
+        c = RecursiveChunker(chunk_size=60, chunk_overlap=0)
+        text = "This is the first paragraph with enough text.\n\nThis is the second paragraph with enough text."
+        chunks = c.chunk(text)
+        # Should split on \n\n boundary
+        assert len(chunks) == 2
+        assert "first paragraph" in chunks[0].content
+        assert "second paragraph" in chunks[1].content
+
     def test_newline_only_text(self):
         c = RecursiveChunker(chunk_size=50)
         text = "\n" * 100
