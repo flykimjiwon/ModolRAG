@@ -132,6 +132,25 @@ class TestRRFMathAccuracy:
         expected = w / (k + 1)
         assert abs(result[0]["rrf_score"] - expected) < 1e-10
 
+    def test_original_fields_preserved(self):
+        """RRF fusion should preserve all original fields from the item."""
+        items = [{"chunk_id": "a", "content": "hello", "custom_field": 42, "nested": {"key": "val"}}]
+        result = rrf_fuse([items])
+        assert result[0]["content"] == "hello"
+        assert result[0]["custom_field"] == 42
+        assert result[0]["nested"]["key"] == "val"
+        assert "rrf_score" in result[0]
+
+    def test_first_occurrence_data_kept(self):
+        """When item appears in multiple lists, first occurrence data is used."""
+        list_a = [{"chunk_id": "x", "source": "vector", "content": "from_a"}]
+        list_b = [{"chunk_id": "x", "source": "fts", "content": "from_b"}]
+        result = rrf_fuse([list_a, list_b])
+        assert len(result) == 1
+        # First list's data should be kept
+        assert result[0]["source"] == "vector"
+        assert result[0]["content"] == "from_a"
+
     def test_scores_monotonically_decreasing(self):
         """Items should be sorted by score descending."""
         items = [{"chunk_id": str(i)} for i in range(20)]
