@@ -31,4 +31,22 @@ def get_parser(mime_type: str) -> ParserBase:
     return parser_cls()
 
 
-__all__ = ["ParserBase", "ParsedDocument", "get_parser"]
+_EXT_TO_MIME: dict[str, str] = {
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".markdown": "text/markdown",
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
+
+
+def mime_from_extension(filename: str) -> str:
+    """Infer MIME type from file extension. Returns 'application/octet-stream' for unknown."""
+    import os
+    ext = os.path.splitext(filename)[1].lower()
+    return _EXT_TO_MIME.get(ext, "application/octet-stream")
+
+
+__all__ = ["ParserBase", "ParsedDocument", "get_parser", "mime_from_extension"]

@@ -1,7 +1,7 @@
 """Test document parsers — 6 formats."""
 import os
 import tempfile
-from modolrag.parsers import get_parser, ParsedDocument
+from modolrag.parsers import get_parser, ParsedDocument, mime_from_extension
 from modolrag.parsers.base import ParserBase
 
 
@@ -64,3 +64,24 @@ class TestParserFactory:
     def test_unknown_fallback(self):
         p = get_parser("application/octet-stream")
         assert isinstance(p, ParserBase)
+
+
+class TestMimeFromExtension:
+    def test_known_extensions(self):
+        assert mime_from_extension("doc.pdf") == "application/pdf"
+        assert mime_from_extension("notes.md") == "text/markdown"
+        assert mime_from_extension("data.xlsx") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert mime_from_extension("readme.txt") == "text/plain"
+        assert mime_from_extension("slides.pptx") == "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        assert mime_from_extension("report.docx") == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    def test_case_insensitive(self):
+        assert mime_from_extension("FILE.PDF") == "application/pdf"
+        assert mime_from_extension("NOTE.MD") == "text/markdown"
+
+    def test_unknown_extension(self):
+        assert mime_from_extension("file.xyz") == "application/octet-stream"
+        assert mime_from_extension("noext") == "application/octet-stream"
+
+    def test_markdown_alias(self):
+        assert mime_from_extension("doc.markdown") == "text/markdown"
