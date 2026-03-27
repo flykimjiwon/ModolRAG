@@ -145,6 +145,34 @@ class TestRecursiveChunkerEdgeCases:
         assert c.chunk(text) == []
 
 
+class TestPageChunkerEdgeCases:
+    def test_empty_pages_filtered(self):
+        c = PageChunker()
+        chunks = c.chunk("ignored", pages=["Content", "", "  ", "More content"])
+        assert len(chunks) == 2
+        assert chunks[0].content == "Content"
+        assert chunks[1].content == "More content"
+
+    def test_single_page(self):
+        c = PageChunker()
+        chunks = c.chunk("Just one page")
+        assert len(chunks) == 1
+
+    def test_empty_text(self):
+        c = PageChunker()
+        chunks = c.chunk("")
+        assert len(chunks) == 0
+
+    def test_mixed_form_feed_and_newlines(self):
+        """Form feed takes priority over triple newline."""
+        c = PageChunker()
+        text = "Page A\fPage B\n\n\nStill page B"
+        chunks = c.chunk(text)
+        # Should split on \f, not \n\n\n
+        assert len(chunks) == 2
+        assert "Page A" in chunks[0].content
+
+
 class TestSemanticChunker:
     def _make_chunker(self):
         mock_embedder = AsyncMock()
