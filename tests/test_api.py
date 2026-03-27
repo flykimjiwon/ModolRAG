@@ -37,6 +37,46 @@ class TestAppStructure:
         assert len(schema["paths"]) >= 8
 
 
+class TestRouteMethodsAndPaths:
+    def _get_route_map(self):
+        """Build {path: set(methods)} from app routes."""
+        route_map = {}
+        for r in app.routes:
+            if hasattr(r, 'path') and hasattr(r, 'methods'):
+                route_map[r.path] = r.methods
+        return route_map
+
+    def test_health_is_get(self):
+        rm = self._get_route_map()
+        assert "GET" in rm.get("/health", set())
+
+    def test_ingest_is_post(self):
+        rm = self._get_route_map()
+        assert "POST" in rm.get("/api/ingest", set())
+
+    def test_search_is_post(self):
+        rm = self._get_route_map()
+        assert "POST" in rm.get("/api/search", set())
+
+    def test_documents_is_get(self):
+        rm = self._get_route_map()
+        assert "GET" in rm.get("/api/documents", set())
+
+    def test_settings_is_get(self):
+        rm = self._get_route_map()
+        assert "GET" in rm.get("/api/settings", set())
+
+    def test_no_duplicate_paths(self):
+        """Each path+method combo should be unique."""
+        seen = set()
+        for r in app.routes:
+            if hasattr(r, 'path') and hasattr(r, 'methods'):
+                for m in r.methods:
+                    key = (r.path, m)
+                    assert key not in seen, f"Duplicate route: {m} {r.path}"
+                    seen.add(key)
+
+
 class TestModuleImports:
     def test_parsers(self):
         from modolrag.parsers import get_parser
