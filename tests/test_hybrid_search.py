@@ -82,6 +82,17 @@ class TestRRFEdgeCases:
         result = rrf_fuse([items], top_k=None)
         assert len(result) == 10
 
+    def test_custom_id_key(self):
+        """rrf_fuse should work with a custom id_key."""
+        list_a = [{"doc_id": "a", "text": "x"}, {"doc_id": "b", "text": "y"}]
+        list_b = [{"doc_id": "b", "text": "y"}, {"doc_id": "c", "text": "z"}]
+        result = rrf_fuse([list_a, list_b], id_key="doc_id")
+        ids = [r["doc_id"] for r in result]
+        assert "b" in ids  # overlap item should be present
+        assert len(result) == 3
+        # "b" appears in both lists, should rank highest
+        assert result[0]["doc_id"] == "b"
+
     def test_weights_shorter_than_lists(self):
         """When weights list is shorter than ranked_lists, extra lists default to 1.0."""
         list_a = [{"chunk_id": "a"}]
