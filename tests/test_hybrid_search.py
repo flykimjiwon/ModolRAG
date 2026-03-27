@@ -71,6 +71,17 @@ class TestRRFEdgeCases:
         result = rrf_fuse(lists)
         assert len(result) == 5
 
+    def test_top_k_limits_results(self):
+        """top_k parameter should limit the number of returned results."""
+        items = [{"chunk_id": str(i)} for i in range(10)]
+        result = rrf_fuse([items], top_k=3)
+        assert len(result) == 3
+
+    def test_top_k_none_returns_all(self):
+        items = [{"chunk_id": str(i)} for i in range(10)]
+        result = rrf_fuse([items], top_k=None)
+        assert len(result) == 10
+
     def test_weights_shorter_than_lists(self):
         """When weights list is shorter than ranked_lists, extra lists default to 1.0."""
         list_a = [{"chunk_id": "a"}]

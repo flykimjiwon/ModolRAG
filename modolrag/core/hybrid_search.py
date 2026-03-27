@@ -24,6 +24,7 @@ def rrf_fuse(
     k: int = 60,
     id_key: str = "chunk_id",
     weights: list[float] | None = None,
+    top_k: int | None = None,
 ) -> list[dict]:
     """Weighted Reciprocal Rank Fusion across multiple ranked result lists.
 
@@ -46,6 +47,9 @@ def rrf_fuse(
 
     # Sort by RRF score descending
     sorted_ids = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)
+
+    if top_k is not None:
+        sorted_ids = sorted_ids[:top_k]
 
     result = []
     for item_id in sorted_ids:
@@ -149,7 +153,7 @@ async def hybrid_search(
         fused = []
     else:
         # Weighted RRF fusion
-        fused = rrf_fuse(results_lists, k=60, weights=rrf_weights)[:top_k]
+        fused = rrf_fuse(results_lists, k=60, weights=rrf_weights, top_k=top_k)
 
     # Convert to SearchResult
     return [
