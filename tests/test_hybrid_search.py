@@ -98,3 +98,23 @@ class TestSearchResult:
         assert r.chunk_id == "1"
         assert r.score == 0.95
         assert r.match_type == "vector"
+
+    def test_to_dict(self):
+        r = SearchResult(chunk_id="1", document_id="d1", content="hello", score=0.95, match_type="vector")
+        d = r.to_dict()
+        assert isinstance(d, dict)
+        assert d["chunk_id"] == "1"
+        assert d["score"] == 0.95
+        assert d["match_type"] == "vector"
+        assert d["metadata"] == {}
+
+    def test_to_dict_with_metadata(self):
+        r = SearchResult(chunk_id="x", document_id="d", content="c", score=0.5, metadata={"page": 3})
+        d = r.to_dict()
+        assert d["metadata"] == {"page": 3}
+
+    def test_default_values(self):
+        r = SearchResult(chunk_id="a", document_id="b", content="c", score=0.1)
+        assert r.match_type == "hybrid"
+        assert r.file_name == ""
+        assert r.original_name == ""

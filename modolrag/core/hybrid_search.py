@@ -18,6 +18,19 @@ class SearchResult:
     match_type: str = "hybrid"  # vector, fts, graph, hybrid
     metadata: dict = field(default_factory=dict)
 
+    def to_dict(self) -> dict:
+        """Serialize to dictionary for API responses."""
+        return {
+            "chunk_id": self.chunk_id,
+            "document_id": self.document_id,
+            "content": self.content,
+            "score": self.score,
+            "file_name": self.file_name,
+            "original_name": self.original_name,
+            "match_type": self.match_type,
+            "metadata": self.metadata,
+        }
+
 
 def rrf_fuse(
     ranked_lists: list[list[dict]],
