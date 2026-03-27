@@ -51,6 +51,18 @@ class TestWikilinksEdgeCases:
         rels = extract_wikilinks(text)
         assert len(rels) == 5 * 4  # permutations
 
+    def test_whitespace_only_links_filtered(self):
+        """[[ ]] should be ignored."""
+        rels = extract_wikilinks("[[  ]] and [[A]] and [[B]]")
+        subjects = {r.subject for r in rels}
+        assert "A" in subjects
+        assert "B" in subjects
+        assert "" not in subjects
+
+    def test_empty_text(self):
+        assert extract_wikilinks("") == []
+        assert extract_wikilinks(None or "") == []
+
 
 class TestParseLlmJson:
     def test_direct_json(self):

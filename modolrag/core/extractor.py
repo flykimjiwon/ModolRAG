@@ -53,16 +53,20 @@ JSON:'''
 
 def extract_wikilinks(text: str) -> list[Relationship]:
     """Extract [[wikilink]] patterns as explicit relationships."""
+    if not text:
+        return []
     pattern = r'\[\[([^\]]+)\]\]'
-    matches = re.findall(pattern, text)
+    raw_matches = re.findall(pattern, text)
+    # Filter out empty/whitespace-only links and strip
+    matches = [m.strip() for m in raw_matches if m.strip()]
     relationships = []
     for i, match in enumerate(matches):
         for j, other in enumerate(matches):
             if i != j:
                 relationships.append(Relationship(
-                    subject=match.strip(),
+                    subject=match,
                     predicate="explicitly_linked",
-                    object=other.strip(),
+                    object=other,
                     confidence=1.0,
                 ))
     return relationships
