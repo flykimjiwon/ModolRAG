@@ -103,6 +103,42 @@ class TestRRFEdgeCases:
         assert scores["b"] > scores["a"]
 
 
+class TestRRFMathAccuracy:
+    def test_single_list_score_formula(self):
+        """Score for rank r in a single list with weight 1.0 should be 1/(k+r)."""
+        items = [{"chunk_id": "a"}, {"chunk_id": "b"}, {"chunk_id": "c"}]
+        k = 60
+        result = rrf_fuse([items], k=k)
+        for i, r in enumerate(result):
+            expected = 1.0 / (k + i + 1)
+            assert abs(r["rrf_score"] - expected) < 1e-10, f"rank {i+1}: expected {expected}, got {r['rrf_score']}"
+
+    def test_two_lists_overlap_score(self):
+        """Item in both lists at rank 1: score = 2 * 1/(k+1)."""
+        list_a = [{"chunk_id": "x"}]
+        list_b = [{"chunk_id": "x"}]
+        k = 60
+        result = rrf_fuse([list_a, list_b], k=k)
+        expected = 2.0 / (k + 1)
+        assert abs(result[0]["rrf_score"] - expected) < 1e-10
+
+    def test_weighted_score_formula(self):
+        """Weighted: score = w * 1/(k+rank)."""
+        items = [{"chunk_id": "a"}]
+        k = 60
+        w = 2.5
+        result = rrf_fuse([items], k=k, weights=[w])
+        expected = w / (k + 1)
+        assert abs(result[0]["rrf_score"] - expected) < 1e-10
+
+    def test_scores_monotonically_decreasing(self):
+        """Items should be sorted by score descending."""
+        items = [{"chunk_id": str(i)} for i in range(20)]
+        result = rrf_fuse([items])
+        for i in range(len(result) - 1):
+            assert result[i]["rrf_score"] >= result[i + 1]["rrf_score"]
+
+
 class TestSearchResult:
     def test_dataclass(self):
         r = SearchResult(chunk_id="1", document_id="d1", content="hello", score=0.95, match_type="vector")
