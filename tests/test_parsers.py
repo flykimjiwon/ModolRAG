@@ -52,6 +52,38 @@ class TestMarkdownParser:
         os.unlink(path)
 
 
+class TestMarkdownFrontmatter:
+    def test_frontmatter_extracted(self):
+        from modolrag.parsers.markdown import _parse_frontmatter
+        content = "---\ntitle: Test\nauthor: Me\n---\n\n# Hello"
+        fm, body = _parse_frontmatter(content)
+        assert "title" in fm
+        assert fm["title"] == "Test" or fm["title"] == "Test"
+        assert "Hello" in body
+
+    def test_no_frontmatter(self):
+        from modolrag.parsers.markdown import _parse_frontmatter
+        content = "# No frontmatter here"
+        fm, body = _parse_frontmatter(content)
+        assert fm == {}
+        assert body == content
+
+    def test_empty_frontmatter(self):
+        from modolrag.parsers.markdown import _parse_frontmatter
+        content = "---\n---\n\nBody text"
+        fm, body = _parse_frontmatter(content)
+        assert fm == {}
+        assert "Body text" in body
+
+    def test_markdown_h2_split(self):
+        md = "# Title\n\nIntro.\n\n## Section A\n\nContent A.\n\n## Section B\n\nContent B."
+        path = _write_tmp(md, ".md")
+        p = get_parser("text/markdown")
+        result = p.parse(path)
+        assert len(result.pages) >= 2
+        os.unlink(path)
+
+
 class TestParserFactory:
     def test_known_types(self):
         for mime in ["text/plain", "text/markdown", "application/pdf",
