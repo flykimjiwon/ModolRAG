@@ -1,5 +1,6 @@
 """Test chunking engine — recursive, page, semantic."""
-from modolrag.core.chunker import RecursiveChunker, PageChunker, Chunk, get_chunker
+from unittest.mock import AsyncMock
+from modolrag.core.chunker import RecursiveChunker, PageChunker, SemanticChunker, Chunk, get_chunker
 
 
 class TestRecursiveChunker:
@@ -116,6 +117,51 @@ class TestRecursiveChunkerEdgeCases:
         c = RecursiveChunker(chunk_size=50)
         text = "\n" * 100
         assert c.chunk(text) == []
+
+
+class TestSemanticChunker:
+    def _make_chunker(self):
+        mock_embedder = AsyncMock()
+        return SemanticChunker(embedder=mock_embedder, threshold=0.5)
+
+    def test_short_text(self):
+        c = self._make_chunker()
+        chunks = c.chunk("Short text.")
+        assert len(chunks) == 1
+
+    def test_empty_text(self):
+        c = self._make_chunker()
+        assert c.chunk("") == []
+        assert c.chunk("   ") == []
+
+    def test_multiple_sentences(self):
+        c = self._make_chunker()
+        text = "First sentence. Second sentence. Third sentence. Fourth sentence."
+        chunks = c.chunk(text)
+        assert len(chunks) >= 1
+        # All content should be preserved
+        combined = " ".join(ch.content for ch in chunks)
+        assert "First" in combined
+        assert "Fourth" in combined
+
+    def test_chunk_indices_sequential(self):
+        c = self._make_chunker()
+        text = ". ".join(f"Sentence number {i}" for i in range(20))
+        chunks = c.chunk(text)
+        for i, ch in enumerate(chunks):
+            assert ch.chunk_index == i
+
+    def test_cosine_similarity_static(self):
+        sim = SemanticChunker._cosine_similarity([1, 0, 0], [1, 0, 0])
+        assert abs(sim - 1.0) < 1e-6
+
+    def test_cosine_similarity_orthogonal(self):
+        sim = SemanticChunker._cosine_similarity([1, 0], [0, 1])
+        assert abs(sim) < 1e-6
+
+    def test_cosine_similarity_zero_vector(self):
+        sim = SemanticChunker._cosine_similarity([0, 0], [1, 1])
+        assert sim == 0.0
 
 
 class TestFactory:
