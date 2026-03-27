@@ -77,6 +77,28 @@ class TestRouteMethodsAndPaths:
                     seen.add(key)
 
 
+class TestOpenAPISchema:
+    def test_all_paths_have_operations(self):
+        schema = app.openapi()
+        for path, methods in schema["paths"].items():
+            for method, details in methods.items():
+                if method in ("get", "post", "put", "delete", "patch"):
+                    assert "operationId" in details, f"Missing operationId for {method.upper()} {path}"
+
+    def test_info_fields(self):
+        schema = app.openapi()
+        assert schema["info"]["title"] == "ModolRAG"
+        assert "description" in schema["info"]
+        assert "license" in schema["info"]
+
+    def test_tags_present_in_schema(self):
+        schema = app.openapi()
+        assert "tags" in schema
+        tag_names = {t["name"] for t in schema["tags"]}
+        assert "search" in tag_names
+        assert "documents" in tag_names
+
+
 class TestMiddleware:
     def test_cors_middleware_present(self):
         middleware_classes = [m.cls.__name__ for m in app.user_middleware]
