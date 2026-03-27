@@ -118,3 +118,40 @@ class TestModuleImports:
         from modolrag.config import get_settings
         s = get_settings()
         assert s.EMBEDDING_PROVIDER in ("ollama", "openai")
+
+
+class TestConfigDefaults:
+    def test_default_chunk_size(self):
+        from modolrag.config import Settings
+        s = Settings()
+        assert s.CHUNK_SIZE == 512
+        assert s.CHUNK_OVERLAP == 51
+
+    def test_default_search_params(self):
+        from modolrag.config import Settings
+        s = Settings()
+        assert s.SIMILARITY_TOP_K == 5
+        assert s.SIMILARITY_THRESHOLD == 0.7
+
+    def test_default_llm_params(self):
+        from modolrag.config import Settings
+        s = Settings()
+        assert s.LLM_TEMPERATURE == 0.1
+        assert s.LLM_MAX_TOKENS == 2048
+        assert s.ENABLE_HYDE is False
+
+    def test_parsed_api_keys_empty(self):
+        from modolrag.config import Settings
+        s = Settings()
+        assert s.parsed_api_keys == []
+
+    def test_parsed_api_keys_with_values(self):
+        from modolrag.config import Settings
+        s = Settings(API_KEYS="key1, key2 , key3")
+        assert s.parsed_api_keys == ["key1", "key2", "key3"]
+
+    def test_embedding_dimensions_type(self):
+        from modolrag.config import Settings
+        s = Settings()
+        assert isinstance(s.EMBEDDING_DIMENSIONS, int)
+        assert s.EMBEDDING_DIMENSIONS == 768
