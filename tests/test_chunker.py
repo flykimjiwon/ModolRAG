@@ -179,3 +179,25 @@ class TestFactory:
             assert False, "Should raise"
         except ValueError:
             pass
+
+    def test_semantic_requires_embedder(self):
+        try:
+            get_chunker("semantic")
+            assert False, "Should raise"
+        except ValueError as e:
+            assert "embedder" in str(e)
+
+    def test_semantic_with_embedder(self):
+        mock_embedder = AsyncMock()
+        c = get_chunker("semantic", embedder=mock_embedder)
+        assert isinstance(c, SemanticChunker)
+
+    def test_recursive_custom_params(self):
+        c = get_chunker("recursive", chunk_size=256, chunk_overlap=32)
+        assert isinstance(c, RecursiveChunker)
+        assert c.chunk_size == 256
+        assert c.chunk_overlap == 32
+
+    def test_default_is_recursive(self):
+        c = get_chunker()
+        assert isinstance(c, RecursiveChunker)
