@@ -52,6 +52,32 @@ class TestPageChunker:
         assert chunks[0].content == "Page A"
 
 
+class TestRecursiveChunkerValidation:
+    def test_zero_chunk_size_raises(self):
+        try:
+            RecursiveChunker(chunk_size=0)
+            assert False, "Should raise ValueError"
+        except ValueError as e:
+            assert "chunk_size" in str(e)
+
+    def test_negative_overlap_raises(self):
+        try:
+            RecursiveChunker(chunk_size=100, chunk_overlap=-1)
+            assert False, "Should raise ValueError"
+        except ValueError as e:
+            assert "chunk_overlap" in str(e)
+
+    def test_overlap_clamped_to_chunk_size(self):
+        """Overlap >= chunk_size should be clamped, not error."""
+        c = RecursiveChunker(chunk_size=50, chunk_overlap=100)
+        assert c.chunk_overlap == 49  # clamped to chunk_size - 1
+
+    def test_valid_params_ok(self):
+        c = RecursiveChunker(chunk_size=1, chunk_overlap=0)
+        assert c.chunk_size == 1
+        assert c.chunk_overlap == 0
+
+
 class TestRecursiveChunkerEdgeCases:
     def test_unicode_text(self):
         c = RecursiveChunker(chunk_size=100)

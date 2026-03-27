@@ -31,8 +31,13 @@ class RecursiveChunker(ChunkerBase):
     """Split text recursively using separator hierarchy."""
 
     def __init__(self, chunk_size: int = 512, chunk_overlap: int = 51):
+        if chunk_size < 1:
+            raise ValueError(f"chunk_size must be >= 1, got {chunk_size}")
+        if chunk_overlap < 0:
+            raise ValueError(f"chunk_overlap must be >= 0, got {chunk_overlap}")
         self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
+        # Clamp overlap to be strictly less than chunk_size
+        self.chunk_overlap = min(chunk_overlap, chunk_size - 1)
         self.separators = ["\n\n", "\n", ". ", " ", ""]
 
     def chunk(self, text: str, **kwargs) -> list[Chunk]:
