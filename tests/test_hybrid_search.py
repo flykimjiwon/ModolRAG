@@ -203,6 +203,34 @@ class TestSearchResult:
         assert r.match_type == "hybrid"
 
 
+class TestRRFStress:
+    def test_large_single_list(self):
+        """1000 items in a single list should work correctly."""
+        items = [{"chunk_id": str(i)} for i in range(1000)]
+        result = rrf_fuse([items], top_k=10)
+        assert len(result) == 10
+        # First item should have highest score
+        assert result[0]["chunk_id"] == "0"
+
+    def test_many_overlapping_lists(self):
+        """10 lists with shared items."""
+        lists = [[{"chunk_id": str(i)} for i in range(j, j + 20)] for j in range(0, 100, 10)]
+        result = rrf_fuse(lists, top_k=5)
+        assert len(result) == 5
+        # Items appearing in multiple lists should rank higher
+        for r in result:
+            assert "rrf_score" in r
+
+    def test_all_same_items(self):
+        """Same items in all lists — all scores should be equal per item."""
+        items = [{"chunk_id": "x"}]
+        result = rrf_fuse([items, items, items])
+        assert len(result) == 1
+        # Score = 3 * 1/(60+1)
+        expected = 3.0 / 61
+        assert abs(result[0]["rrf_score"] - expected) < 1e-10
+
+
 class TestRRFImmutability:
     def test_input_not_mutated(self):
         """rrf_fuse should not mutate the input lists."""
