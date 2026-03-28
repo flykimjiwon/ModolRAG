@@ -1,4 +1,5 @@
 """Test chunking engine — recursive, page, semantic."""
+import pytest
 from unittest.mock import AsyncMock
 from modolrag.core.chunker import RecursiveChunker, PageChunker, SemanticChunker, Chunk, get_chunker
 
@@ -274,3 +275,72 @@ class TestFactory:
     def test_default_is_recursive(self):
         c = get_chunker()
         assert isinstance(c, RecursiveChunker)
+
+
+class TestSemanticChunkerAsync:
+    """Tests for SemanticChunker.embed_and_chunk (the real async path)."""
+
+    @pytest.mark.asyncio
+    async def test_embed_and_chunk_short_text(self):
+        """Single sentence returns one chunk without calling embedder."""
+        mock_embedder = AsyncMock()
+        c = SemanticChunker(embedder=mock_embedder, threshold=0.5)
+        chunks = await c.embed_and_chunk("Only one sentence.")
+        assert len(chunks) == 1
+        mock_embedder.embed_batch.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_embed_and_chunk_empty_text(self):
+        mock_embedder = AsyncMock()
+        c = SemanticChunker(embedder=mock_embedder, threshold=0.5)
+        assert await c.embed_and_chunk("") == []
+        assert await c.embed_and_chunk("   ") == []
+
+    @pytest.mark.asyncio
+    async def test_embed_and_chunk_splits_on_low_similarity(self):
+        """When cosine similarity < threshold, sentences split into separate chunks."""
+        mock_embedder = AsyncMock()
+        # Two sentences: embeddings are orthogonal → similarity = 0 < 0.5 threshold → split
+        mock_embedder.embed_batch.return_value = [[1.0, 0.0], [0.0, 1.0]]
+        c = SemanticChunker(embedder=mock_embedder, threshold=0.5)
+        text = "First sentence. Second sentence."
+        chunks = await c.embed_and_chunk(text)
+        assert len(chunks) == 2
+        assert "First" in chunks[0].content
+        assert "Second" in chunks[1].content
+
+    @pytest.mark.asyncio
+    async def test_embed_and_chunk_merges_on_high_similarity(self):
+        """When similarity >= threshold, sentences merge into one chunk."""
+        mock_embedder = AsyncMock()
+        # Two sentences: identical embeddings → similarity = 1.0 >= 0.5 → merge
+        mock_embedder.embed_batch.return_value = [[1.0, 0.0], [1.0, 0.0]]
+        c = SemanticChunker(embedder=mock_embedder, threshold=0.5)
+        text = "First sentence. Second sentence."
+        chunks = await c.embed_and_chunk(text)
+        assert len(chunks) == 1
+        assert "First" in chunks[0].content
+        assert "Second" in chunks[0].content
+
+    @pytest.mark.asyncio
+    async def test_embed_and_chunk_indices_sequential(self):
+        """chunk_index should be 0-based and sequential."""
+        mock_embedder = AsyncMock()
+        # All orthogonal → every sentence splits
+        mock_embedder.embed_batch.return_value = [
+            [1, 0, 0], [0, 1, 0], [0, 0, 1]
+        ]
+        c = SemanticChunker(embedder=mock_embedder, threshold=0.5)
+        text = "Sentence one. Sentence two. Sentence three."
+        chunks = await c.embed_and_chunk(text)
+        for i, ch in enumerate(chunks):
+            assert ch.chunk_index == i
+
+    @pytest.mark.asyncio
+    async def test_embed_and_chunk_calls_embed_batch(self):
+        """embed_batch should be called once with all sentences."""
+        mock_embedder = AsyncMock()
+        mock_embedder.embed_batch.return_value = [[1.0, 0.0], [1.0, 0.0]]
+        c = SemanticChunker(embedder=mock_embedder, threshold=0.5)
+        await c.embed_and_chunk("Alpha sentence. Beta sentence.")
+        mock_embedder.embed_batch.assert_called_once()
