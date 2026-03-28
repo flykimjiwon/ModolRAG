@@ -37,7 +37,6 @@ class DocxParser(ParserBase):
     def parse(self, file_path: str) -> ParsedDocument:
         try:
             from docx import Document
-            from docx.oxml.ns import qn
         except ImportError as e:
             return ParsedDocument(
                 text="",

@@ -64,7 +64,8 @@ async def ingest_document(
     category = category_map.get(mime_type, "other")
 
     # Save to temp file and create DB record
-    import tempfile, os
+    import tempfile
+    import os
     tmp_dir = tempfile.mkdtemp()
     tmp_path = os.path.join(tmp_dir, file.filename or "upload")
     with open(tmp_path, "wb") as f:

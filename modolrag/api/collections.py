@@ -1,7 +1,7 @@
 """Collection management endpoints — group documents into searchable sets."""
 from __future__ import annotations
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from modolrag.api.auth import require_api_key
 from modolrag.db import execute, fetch, fetchrow

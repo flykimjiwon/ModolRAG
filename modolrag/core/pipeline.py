@@ -1,10 +1,8 @@
 """End-to-end document ingestion pipeline."""
 from __future__ import annotations
-import asyncio
 import json
-import traceback
 
-from modolrag.db import execute, fetchrow
+from modolrag.db import execute
 from modolrag.config import get_settings
 
 

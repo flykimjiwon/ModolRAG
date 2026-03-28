@@ -1,7 +1,6 @@
 """CLI entry point for ModolRAG."""
 import argparse
 import asyncio
-import sys
 from typing import Optional
 
 import uvicorn
@@ -237,7 +236,7 @@ async def _quickstart():
         # Check if running
         import httpx
         try:
-            resp = httpx.get("http://localhost:11434/api/tags", timeout=5)
+            httpx.get("http://localhost:11434/api/tags", timeout=5)
             print("[3/4] Ollama: running")
         except Exception:
             print("[3/4] Starting Ollama...")
@@ -297,13 +296,13 @@ async def _status():
     # PostgreSQL
     try:
         from modolrag.db import get_pool, fetchval, close_pool
-        pool = await get_pool()
-        version = await fetchval("SELECT version()")
+        await get_pool()
+        await fetchval("SELECT version()")
         doc_count = await fetchval("SELECT count(*) FROM modolrag_documents")
         chunk_count = await fetchval("SELECT count(*) FROM modolrag_document_chunks")
         node_count = await fetchval("SELECT count(*) FROM modolrag_graph_nodes")
         await close_pool()
-        print(f"  PostgreSQL:  connected")
+        print("  PostgreSQL:  connected")
         print(f"  Documents:   {doc_count}")
         print(f"  Chunks:      {chunk_count}")
         print(f"  Graph nodes: {node_count}")
@@ -317,11 +316,11 @@ async def _status():
             models = [m["name"] for m in resp.json().get("models", [])]
             print(f"  Ollama:      running ({len(models)} models)")
             if "nomic-embed-text:latest" in models:
-                print(f"  Embedding:   nomic-embed-text ready")
+                print("  Embedding:   nomic-embed-text ready")
             else:
-                print(f"  Embedding:   nomic-embed-text NOT found")
+                print("  Embedding:   nomic-embed-text NOT found")
     except Exception:
-        print(f"  Ollama:      NOT running")
+        print("  Ollama:      NOT running")
 
     # Config
     from modolrag.config import get_settings

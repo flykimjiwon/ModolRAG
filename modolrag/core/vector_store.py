@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 
-from modolrag.db import fetch, fetchrow, fetchval, execute
+from modolrag.db import fetch, fetchrow, execute
 
 
 def _format_halfvec(embedding: list[float]) -> str:
