@@ -162,3 +162,55 @@ class TestMimeFromExtension:
 
     def test_markdown_alias(self):
         assert mime_from_extension("doc.markdown") == "text/markdown"
+
+
+class TestTextParserEdgeCases:
+    def test_unicode_korean(self):
+        """Text parser must handle Korean UTF-8 without mangling."""
+        path = _write_tmp("안녕하세요.\n두 번째 줄.", ".txt")
+        p = get_parser("text/plain")
+        result = p.parse(path)
+        assert "안녕하세요" in result.text
+        os.unlink(path)
+
+    def test_nonexistent_file(self):
+        """Nonexistent file should return error in metadata, not raise."""
+        p = get_parser("text/plain")
+        result = p.parse("/tmp/nonexistent_modolrag_xyz_test.txt")
+        assert "error" in result.metadata
+
+    def test_multiline_content(self):
+        """All lines should be present in parsed text."""
+        lines = [f"Line {i}" for i in range(50)]
+        path = _write_tmp("\n".join(lines), ".txt")
+        p = get_parser("text/plain")
+        result = p.parse(path)
+        assert "Line 0" in result.text
+        assert "Line 49" in result.text
+        os.unlink(path)
+
+
+class TestParsedDocumentEdgeCases:
+    def test_pages_default_empty_list(self):
+        doc = ParsedDocument(text="hello")
+        assert doc.pages == []
+        assert isinstance(doc.pages, list)
+
+    def test_metadata_default_empty_dict(self):
+        doc = ParsedDocument(text="x")
+        assert doc.metadata == {}
+        assert isinstance(doc.metadata, dict)
+
+    def test_independent_metadata_instances(self):
+        """Two ParsedDocuments should not share the same metadata dict."""
+        doc1 = ParsedDocument(text="a")
+        doc2 = ParsedDocument(text="b")
+        doc1.metadata["key"] = "val"
+        assert "key" not in doc2.metadata
+
+    def test_independent_pages_instances(self):
+        """Two ParsedDocuments should not share the same pages list."""
+        doc1 = ParsedDocument(text="a")
+        doc2 = ParsedDocument(text="b")
+        doc1.pages.append("page1")
+        assert doc2.pages == []
