@@ -1,5 +1,6 @@
 """Test entity/relationship extractor."""
-from modolrag.core.extractor import extract_wikilinks, ExtractionResult, Entity, Relationship
+import pytest
+from modolrag.core.extractor import extract_wikilinks, ExtractionResult, Entity, Relationship, extract_entities_and_relations
 
 
 class TestWikilinks:
@@ -155,3 +156,64 @@ class TestDataClasses:
         er.relationships.append(Relationship(subject="X", predicate="rel", object="Y"))
         assert len(er.entities) == 1
         assert len(er.relationships) == 1
+
+
+class TestExtractEntitiesAndRelations:
+    """Tests for the async extract_entities_and_relations function.
+
+    LLM endpoint is unreachable in CI; these tests verify the wikilink
+    fallback path and that the function always returns an ExtractionResult.
+    """
+
+    @pytest.mark.asyncio
+    async def test_returns_extraction_result(self):
+        """Always returns ExtractionResult even when LLM is unavailable."""
+        result = await extract_entities_and_relations(
+            "Some text without wikilinks.",
+            llm_endpoint="http://localhost:0/unreachable",
+        )
+        assert isinstance(result, ExtractionResult)
+        assert isinstance(result.entities, list)
+        assert isinstance(result.relationships, list)
+
+    @pytest.mark.asyncio
+    async def test_wikilinks_extracted_without_llm(self):
+        """Wikilinks are extracted even when LLM call fails."""
+        result = await extract_entities_and_relations(
+            "See [[Python]] and [[FastAPI]] for details.",
+            llm_endpoint="http://localhost:0/unreachable",
+        )
+        subjects = {r.subject for r in result.relationships}
+        assert "Python" in subjects
+        assert "FastAPI" in subjects
+
+    @pytest.mark.asyncio
+    async def test_wikilink_entities_added(self):
+        """Entities are auto-created from wikilinks when LLM is unavailable."""
+        result = await extract_entities_and_relations(
+            "[[Alpha]] references [[Beta]].",
+            llm_endpoint="http://localhost:0/unreachable",
+        )
+        names = {e.name for e in result.entities}
+        assert "Alpha" in names
+        assert "Beta" in names
+
+    @pytest.mark.asyncio
+    async def test_empty_text_no_crash(self):
+        """Empty text returns empty ExtractionResult."""
+        result = await extract_entities_and_relations(
+            "",
+            llm_endpoint="http://localhost:0/unreachable",
+        )
+        assert result.entities == []
+        assert result.relationships == []
+
+    @pytest.mark.asyncio
+    async def test_no_wikilinks_empty_entities(self):
+        """Plain text without wikilinks yields no entities (LLM unavailable)."""
+        result = await extract_entities_and_relations(
+            "This is plain prose without any special markup.",
+            llm_endpoint="http://localhost:0/unreachable",
+        )
+        assert result.entities == []
+        assert result.relationships == []
